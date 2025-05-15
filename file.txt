@@ -1,0 +1,327 @@
+-- 创建数据库
+CREATE DATABASE IF NOT EXISTS medical_training CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE medical_training;
+
+-- 用户表
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    member_number VARCHAR(20) UNIQUE COMMENT '会员编号',
+    name VARCHAR(50) NOT NULL COMMENT '姓名',
+    id_number VARCHAR(18) UNIQUE COMMENT '身份证号',
+    phone VARCHAR(20) UNIQUE COMMENT '手机号',
+    email VARCHAR(100) UNIQUE COMMENT '邮箱',
+    password VARCHAR(255) NOT NULL COMMENT '密码(加密存储)',
+    avatar VARCHAR(255) DEFAULT NULL COMMENT '头像URL',
+    status ENUM('active', 'inactive', 'banned') DEFAULT 'active' COMMENT '状态',
+    role ENUM('user', 'admin', 'super_admin') DEFAULT 'user' COMMENT '角色',
+    register_date DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '注册时间',
+    last_login DATETIME DEFAULT NULL COMMENT '最后登录时间',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_member_number (member_number),
+    INDEX idx_status (status),
+    INDEX idx_role (role)
+) COMMENT='用户表';
+
+-- 会员订阅表
+CREATE TABLE subscriptions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL COMMENT '用户ID',
+    plan_type ENUM('monthly', 'quarterly', 'yearly') NOT NULL COMMENT '订阅类型',
+    start_date DATETIME NOT NULL COMMENT '开始日期',
+    end_date DATETIME NOT NULL COMMENT '结束日期',
+    status ENUM('active', 'expired', 'cancelled') DEFAULT 'active' COMMENT '状态',
+    auto_renew BOOLEAN DEFAULT FALSE COMMENT '是否自动续费',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user_id (user_id),
+    INDEX idx_status (status),
+    INDEX idx_end_date (end_date)
+) COMMENT='会员订阅表';
+
+-- 支付记录表
+CREATE TABLE payments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL COMMENT '用户ID',
+    subscription_id INT COMMENT '关联的订阅ID',
+    amount DECIMAL(10, 2) NOT NULL COMMENT '支付金额',
+    payment_method ENUM('alipay', 'wechat', 'bank_card') NOT NULL COMMENT '支付方式',
+    transaction_id VARCHAR(100) COMMENT '交易ID',
+    status ENUM('pending', 'completed', 'failed', 'refunded') DEFAULT 'pending' COMMENT '支付状态',
+    payment_date DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '支付时间',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (subscription_id) REFERENCES subscriptions(id),
+    INDEX idx_user_id (user_id),
+    INDEX idx_status (status),
+    INDEX idx_payment_date (payment_date)
+) COMMENT='支付记录表';
+
+-- 视频分类表
+CREATE TABLE video_categories (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL COMMENT '分类名称',
+    description TEXT COMMENT '分类描述',
+    parent_id INT DEFAULT NULL COMMENT '父分类ID',
+    display_order INT DEFAULT 0 COMMENT '显示顺序',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (parent_id) REFERENCES video_categories(id) ON DELETE SET NULL,
+    INDEX idx_parent_id (parent_id),
+    INDEX idx_display_order (display_order)
+) COMMENT='视频分类表';
+
+-- 讲师表
+CREATE TABLE instructors (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL COMMENT '讲师姓名',
+    title VARCHAR(100) COMMENT '职称',
+    organization VARCHAR(100) COMMENT '所属机构',
+    bio TEXT COMMENT '个人简介',
+    avatar VARCHAR(255) COMMENT '头像URL',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) COMMENT='讲师表';
+
+-- 视频表
+CREATE TABLE videos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(100) NOT NULL COMMENT '视频标题',
+    description TEXT COMMENT '视频描述',
+    category_id INT COMMENT '分类ID',
+    instructor_id INT COMMENT '讲师ID',
+    duration INT NOT NULL COMMENT '时长(秒)',
+    video_url VARCHAR(255) NOT NULL COMMENT '视频URL',
+    thumbnail_url VARCHAR(255) COMMENT '缩略图URL',
+    access_type ENUM('external', 'internal') DEFAULT 'external' COMMENT '访问类型(external:非会员可观看5分钟,internal:仅会员)',
+    views INT DEFAULT 0 COMMENT '观看次数',
+    status ENUM('draft', 'published', 'archived') DEFAULT 'published' COMMENT '状态',
+    upload_date DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '上传时间',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (category_id) REFERENCES video_categories(id) ON DELETE SET NULL,
+    FOREIGN KEY (instructor_id) REFERENCES instructors(id) ON DELETE SET NULL,
+    INDEX idx_category_id (category_id),
+    INDEX idx_instructor_id (instructor_id),
+    INDEX idx_access_type (access_type),
+    INDEX idx_status (status),
+    FULLTEXT INDEX ft_video_search (title, description)
+) COMMENT='视频表';
+
+-- 视频标签表
+CREATE TABLE video_tags (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL COMMENT '标签名称',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE INDEX idx_name (name)
+) COMMENT='视频标签表';
+
+-- 视频-标签关联表
+CREATE TABLE video_tag_relations (
+    video_id INT NOT NULL,
+    tag_id INT NOT NULL,
+    PRIMARY KEY (video_id, tag_id),
+    FOREIGN KEY (video_id) REFERENCES videos(id) ON DELETE CASCADE,
+    FOREIGN KEY (tag_id) REFERENCES video_tags(id) ON DELETE CASCADE
+) COMMENT='视频-标签关联表';
+
+-- 学习资料表
+CREATE TABLE materials (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    video_id INT COMMENT '关联的视频ID',
+    name VARCHAR(100) NOT NULL COMMENT '资料名称',
+    description TEXT COMMENT '资料描述',
+    file_url VARCHAR(255) NOT NULL COMMENT '文件URL',
+    file_type VARCHAR(20) COMMENT '文件类型',
+    file_size INT COMMENT '文件大小(KB)',
+    access_type ENUM('external', 'internal') DEFAULT 'external' COMMENT '访问类型(external:公开,internal:仅会员)',
+    download_count INT DEFAULT 0 COMMENT '下载次数',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (video_id) REFERENCES videos(id) ON DELETE CASCADE,
+    INDEX idx_video_id (video_id),
+    INDEX idx_access_type (access_type)
+) COMMENT='学习资料表';
+
+-- 视频观看记录表
+CREATE TABLE watch_history (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL COMMENT '用户ID',
+    video_id INT NOT NULL COMMENT '视频ID',
+    progress INT DEFAULT 0 COMMENT '观看进度(秒)',
+    completed BOOLEAN DEFAULT FALSE COMMENT '是否完成观看',
+    last_watched DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '最后观看时间',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (video_id) REFERENCES videos(id) ON DELETE CASCADE,
+    UNIQUE KEY uk_user_video (user_id, video_id),
+    INDEX idx_user_id (user_id),
+    INDEX idx_video_id (video_id),
+    INDEX idx_last_watched (last_watched)
+) COMMENT='视频观看记录表';
+
+-- 用户笔记表
+CREATE TABLE notes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL COMMENT '用户ID',
+    video_id INT NOT NULL COMMENT '视频ID',
+    content TEXT NOT NULL COMMENT '笔记内容',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (video_id) REFERENCES videos(id) ON DELETE CASCADE,
+    INDEX idx_user_id (user_id),
+    INDEX idx_video_id (video_id)
+) COMMENT='用户笔记表';
+
+-- 评论表
+CREATE TABLE comments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL COMMENT '用户ID',
+    video_id INT NOT NULL COMMENT '视频ID',
+    parent_id INT DEFAULT NULL COMMENT '父评论ID(用于回复)',
+    content TEXT NOT NULL COMMENT '评论内容',
+    status ENUM('pending', 'approved', 'rejected') DEFAULT 'approved' COMMENT '状态',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (video_id) REFERENCES videos(id) ON DELETE CASCADE,
+    FOREIGN KEY (parent_id) REFERENCES comments(id) ON DELETE SET NULL,
+    INDEX idx_user_id (user_id),
+    INDEX idx_video_id (video_id),
+    INDEX idx_parent_id (parent_id),
+    INDEX idx_status (status)
+) COMMENT='评论表';
+
+-- 视频评分表
+CREATE TABLE ratings (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL COMMENT '用户ID',
+    video_id INT NOT NULL COMMENT '视频ID',
+    score TINYINT NOT NULL COMMENT '评分(1-5)',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (video_id) REFERENCES videos(id) ON DELETE CASCADE,
+    UNIQUE KEY uk_user_video (user_id, video_id),
+    INDEX idx_video_id (video_id),
+    CHECK (score BETWEEN 1 AND 5)
+) COMMENT='视频评分表';
+
+-- 证书表
+CREATE TABLE certificates (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL COMMENT '用户ID',
+    title VARCHAR(100) NOT NULL COMMENT '证书标题',
+    description TEXT COMMENT '证书描述',
+    issue_date DATETIME NOT NULL COMMENT '颁发日期',
+    expiry_date DATETIME COMMENT '过期日期',
+    certificate_url VARCHAR(255) COMMENT '证书URL',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user_id (user_id),
+    INDEX idx_issue_date (issue_date),
+    INDEX idx_expiry_date (expiry_date)
+) COMMENT='证书表';
+
+-- 系统设置表
+CREATE TABLE settings (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    setting_key VARCHAR(50) NOT NULL UNIQUE COMMENT '设置键',
+    setting_value TEXT COMMENT '设置值',
+    description VARCHAR(255) COMMENT '描述',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) COMMENT='系统设置表';
+
+-- 操作日志表
+CREATE TABLE operation_logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT COMMENT '用户ID',
+    action VARCHAR(50) NOT NULL COMMENT '操作类型',
+    target_type VARCHAR(50) COMMENT '目标类型',
+    target_id INT COMMENT '目标ID',
+    details TEXT COMMENT '详细信息',
+    ip_address VARCHAR(50) COMMENT 'IP地址',
+    user_agent TEXT COMMENT '用户代理',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_user_id (user_id),
+    INDEX idx_action (action),
+    INDEX idx_created_at (created_at)
+) COMMENT='操作日志表';
+
+-- 插入一些基础数据
+
+-- 插入视频分类
+INSERT INTO video_categories (name, description, parent_id, display_order) VALUES
+('基础护理', '基础护理技能和知识', NULL, 1),
+('急救技术', '各类急救技术和方法', NULL, 2),
+('医疗设备', '医疗设备使用和维护', NULL, 3),
+('沟通技巧', '医患沟通和团队协作', NULL, 4),
+('专科护理', '各专科护理技能和知识', NULL, 5),
+('内科护理', '内科相关护理技能', 5, 1),
+('外科护理', '外科相关护理技能', 5, 2),
+('儿科护理', '儿科相关护理技能', 5, 3),
+('妇产科护理', '妇产科相关护理技能', 5, 4);
+
+-- 插入讲师
+INSERT INTO instructors (name, title, organization, bio, avatar) VALUES
+('王医生', '主任医师', '北京协和医院', '从事临床医学工作20年，擅长急救技术和内科疾病诊治', '/placeholder.svg?height=100&width=100'),
+('李教授', '教授', '上海医科大学', '医学博士，从事医学教育30年，发表论文百余篇', '/placeholder.svg?height=100&width=100'),
+('张主任', '护理部主任', '广州市第一人民医院', '从事护理工作25年，擅长护理管理和基础护理技术培训', '/placeholder.svg?height=100&width=100'),
+('刘医生', '副主任医师', '深圳市人民医院', '心理学博士，擅长医患沟通和医疗团队建设', '/placeholder.svg?height=100&width=100'),
+('陈医生', '主治医师', '武汉协和医院', '药学硕士，擅长急救药物使用和临床用药指导', '/placeholder.svg?height=100&width=100');
+
+-- 插入视频
+INSERT INTO videos (title, description, category_id, instructor_id, duration, video_url, thumbnail_url, access_type, views, status) VALUES
+('基础护理技能培训', '学习基本的护理技能和操作流程，适合初级医护人员', 1, 3, 2700, '/placeholder.mp4', '/placeholder.svg?height=200&width=350', 'external', 1245, 'published'),
+('高级心肺复苏技术', '掌握最新的心肺复苏技术和急救方法', 2, 2, 3600, '/placeholder.mp4', '/placeholder.svg?height=200&width=350', 'external', 987, 'published'),
+('医疗设备操作指南', '详细讲解常见医疗设备的使用方法和注意事项', 3, 3, 3000, '/placeholder.mp4', '/placeholder.svg?height=200&width=350', 'internal', 876, 'published'),
+('患者沟通技巧', '提升与患者沟通的能力，建立良好的医患关系', 4, 4, 2400, '/placeholder.mp4', '/placeholder.svg?height=200&width=350', 'external', 765, 'published'),
+('急救药物使用指南', '详细讲解急救药物的使用方法、适应症和注意事项', 2, 5, 2100, '/placeholder.mp4', '/placeholder.svg?height=200&width=350', 'internal', 654, 'published'),
+('创伤急救技术', '学习各类创伤的急救处理方法和技巧', 2, 1, 2700, '/placeholder.mp4', '/placeholder.svg?height=200&width=350', 'external', 543, 'published'),
+('医疗团队协作', '提升医疗团队协作能力，提高工作效率', 4, 4, 1800, '/placeholder.mp4', '/placeholder.svg?height=200&width=350', 'internal', 432, 'published'),
+('医疗记录规范', '学习医疗记录的书写规范和注意事项', 1, 2, 1500, '/placeholder.mp4', '/placeholder.svg?height=200&width=350', 'external', 321, 'published');
+
+-- 插入视频标签
+INSERT INTO video_tags (name) VALUES
+('基础技能'), ('急救'), ('设备操作'), ('沟通'), ('团队协作'), ('药物使用'), ('记录规范'), ('心肺复苏');
+
+-- 插入视频-标签关联
+INSERT INTO video_tag_relations (video_id, tag_id) VALUES
+(1, 1), (1, 7), 
+(2, 2), (2, 8), 
+(3, 3), (3, 1), 
+(4, 4), (4, 5), 
+(5, 6), (5, 2), 
+(6, 2), (6, 1), 
+(7, 5), (7, 4), 
+(8, 7), (8, 1);
+
+-- 插入学习资料
+INSERT INTO materials (video_id, name, description, file_url, file_type, file_size, access_type) VALUES
+(1, '基础护理操作手册.pdf', '详细的基础护理操作步骤和注意事项', '/files/basic_nursing.pdf', 'pdf', 2048, 'external'),
+(2, '心肺复苏操作指南.pdf', '最新版心肺复苏操作指南和流程', '/files/cpr_guide.pdf', 'pdf', 3072, 'external'),
+(2, '急救药物使用手册.pdf', '常用急救药物的使用方法和注意事项', '/files/emergency_meds.pdf', 'pdf', 4096, 'internal'),
+(3, '医疗设备操作手册.pdf', '常见医疗设备的操作方法和维护指南', '/files/equipment_manual.pdf', 'pdf', 5120, 'internal'),
+(4, '医患沟通案例分析.pdf', '典型医患沟通案例分析和技巧总结', '/files/communication_cases.pdf', 'pdf', 2560, 'external'),
+(5, '急救药物配伍禁忌.pdf', '急救药物的配伍禁忌和注意事项', '/files/drug_compatibility.pdf', 'pdf', 1536, 'internal');
+
+-- 插入管理员用户
+INSERT INTO users (member_number, name, id_number, phone, email, password, status, role, register_date) VALUES
+('A20250001', '系统管理员', '110101199001010001', '13800000001', 'admin@example.com', '$2a$10$xVLXqSkHrJ7MHihBJIxAj.Qe7Zs5EDwuFVYaRnpVCQx3pKVIlPBey', 'active', 'super_admin', '2025-01-01 00:00:00');
+
+-- 插入系统设置
+INSERT INTO settings (setting_key, setting_value, description) VALUES
+('site_name', '医护培训', '网站名称'),
+('site_description', '专业医护培训平台，提供高质量的医护培训课程', '网站描述'),
+('free_preview_time', '300', '非会员预览时间(秒)'),
+('monthly_price', '39', '月度会员价格'),
+('quarterly_price', '99', '季度会员价格'),
+('yearly_price', '299', '年度会员价格');

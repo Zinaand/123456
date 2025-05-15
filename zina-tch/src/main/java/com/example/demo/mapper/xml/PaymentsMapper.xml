@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.mapper.PaymentsMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.example.demo.pojo.Payments">
+        <id column="id" property="id" />
+        <result column="user_id" property="userId" />
+        <result column="subscription_id" property="subscriptionId" />
+        <result column="amount" property="amount" />
+        <result column="payment_method" property="paymentMethod" />
+        <result column="transaction_id" property="transactionId" />
+        <result column="status" property="status" />
+        <result column="payment_date" property="paymentDate" />
+        <result column="created_at" property="createdAt" />
+        <result column="updated_at" property="updatedAt" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, user_id, subscription_id, amount, payment_method, transaction_id, status, payment_date, created_at, updated_at
+    </sql>
+
+</mapper>

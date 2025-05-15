@@ -1,0 +1,87 @@
+# 应用服务 WEB 访问端口
+server:
+  port: 8090
+  # 添加Tomcat连接超时配置
+  tomcat:
+    connection-timeout: 120000  # 120秒
+  servlet:
+    session:
+      timeout: 30m
+      
+spring:
+  thymeleaf:
+    cache: false
+    prefix: classpath:/templates/
+    encoding: UTF-8
+    suffix: .html
+    mode: HTML
+  datasource:
+    url: jdbc:mysql://localhost:3306/medical_training?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=GMT%2B8
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: 123456
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+    serialization:
+      write-dates-as-timestamps: false
+  # JPA配置
+  jpa:
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+  main:
+    allow-bean-definition-overriding: true
+  # 添加MVC配置，增加请求超时
+  mvc:
+    async:
+      request-timeout: 120000 # 120秒
+
+# MyBatis-Plus配置
+mybatis-plus:
+  global-config:
+    db-config:
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+  mapper-locations: classpath:com/example/demo/mapper/xml/*.xml
+  type-aliases-package: com.example.demo.pojo
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+# 日志配置
+logging:
+  level:
+    com.example.demo: debug
+    com.alipay.api: debug  # 添加支付宝SDK的日志级别
+
+# 支付配置
+payment:
+  # 回调域名配置，用于支付回调
+  callback-host: http://localhost:8090
+  
+  # 微信支付配置（示例配置，需要替换为实际配置）
+  wechat:
+    app-id: wx123456789abcdef
+    mch-id: 1230000109
+    key: abcdefghijklmnopqrstuvwxyz123456
+    notify-url: /api/payments/wechat/notify
+    
+  # 支付宝配置（沙箱环境配置）
+  alipay:
+    app-id: 2021000148670346  # 请替换为您的沙箱应用ID
+    private-key: MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCr0PZEzcKibDUNCQaIz/dx5gBGfkW1dqmj1yrLX5x3tY7Z+W2EVlZfw535fS3dmyNeL6ATkhnOrJCyUGUR/fY3p9uYbAVpPyWg+IZdAB9cw+tSEHb3gEnZbBMBGYqUFU/Ni6p1aedXIQvfmDleUUzlHdsLurjnlv8fOkNr6hkBuZeidbhvVABmPMEid7Rv8QnkB+Q3QFjdvQfaKsbHEcY6ia/lYsYhzTzJTcFQr+sB+fZrdQ2MECevvtbZKY66vD09DI1Jwe36T7c4DTlzisMN7ZuA194NDS5yFm2VgFCxf6noN+5xve6yXY0k7ICej/tzfjndD5xNJBlnmxhbSOe1AgMBAAECggEBAJdQl6Jup6wNqgcJ3NReeyi3C6UJjfDLSYk+dLTZRl5y6hTzw0yaEMWT7KuNX/hbqaFIRi0WLV5DwccYYHqg89d+IDozX+yZrVT/qq167yPuc285itxcAi3WLUJ5sP7LahW2m+99zjyAoQlQ8a0r4pGhYokI79EdvR9OW5RNfapyyIMvv/UuGQRCvlj1Ar8R09SNZSTjtOuDrsNXJxJg+8m9hnlJc7D2krlEVXISzDi8/KWjMn/g+tggqilWzOWQmUME8c9KVMgQGS+5hKs9pKZm3yodMtXdsL/06pOd4L4IXhenU0Q2x8dNGfUp6M3hfrQdOQt3KRJUSIHMTrCrqeECgYEA8bO5/tBGfJgjxuiKf8KlqQ3tg0TwbnZIikFjTWcW5NenD20XpNavPZqzCNMLpT4Th1feJTnroyIr488iL7CHAK558Es7IZ9ejpqtqNZcui3c2Nl/O3T3RyqKM66d6EzGQuNxGS3NLFuIMJy8dSTzEbgvl0xItWhM3+vig3odek0CgYEAtfrnKSDh1XW32Pvoo3ppvB2sFqkdZry8pkPjyJ7X2mEnb+3oghzZmExkeyNW71oJ5wDj7+Vw+h9kIKzjptJC+U79ZalBM5e5y2DUt18zvTck4II4U+DNW/JAWw8QIGyq6CgARbXMQWshaipTWd0JTJTdlqBxJ1oXAb9LssZFhwkCgYEAgYfiG88el1MpiUXCQ6nbAfh22yys9WXqhj14rFidClMQMtIyI6LyEz++xvHjgdD8wkGyyZx6zdhYUSQGnCwsjY7zxnVq4R/5ms8GVj9bPmOpwYT+DK0ogDkqC3x/H6lVby9YwzeqhyUenX7B+L2ujkZ5Kso1BRM6b56IrBFbjtkCgYAkd5QNJN68lOtzmv+CiwxXOyb6H4eZx+aR9vbVhCdDRsbNYkJ+mGNuZpiYKHvKWSO02/PRZgwew12gQqUYD/iF1zNmROWg/h2oSM43tOc8WqmUJ+Q7wsfETiZhWQJlTQFupl1vmr/EuEAo8zRixK2RYB+LiLlEJoSHwBreR2c1aQKBgGw0QkRyKELlr4NwitKcvUsbpiftaYdfpsChhiy80M8iU0LcteVQ2itn6BPaFHQizYNEUTtldbFRNv+ZgpbpEMZJpBtGo6Iyub30cObmw3KHIcf2P2VmbknaSxqnHAI/oEV/jCUjpuhqdL3ZrqtCkFmpJyzrTZuqQkQpShcBydy+
+    alipay-public-key: MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAl+3PtmzPmFRNlN2aFwMkrcXaMVnhPLijGUFwAU5XUg49f2IAn0vcyrZVbpIpx8qURrAkfUHUHc6/WOnklKMRsNGrCLApENWOZ4CqN+Q/CzN+lSu2A0C/ZkFV+h5Eam6720rqe56kv2l7EU7qn6ie6ic8ERRkJRXMMhrxRw2lY3ybU8doC2bexN/rB+Od6RxFG3y7qy8jYWml35yAYpPI1pC9kbA8KR7QiGNNdO7Iyk048ptLM36iLgC5ETJ+rF7h/4a2JCyxlAiAh0W1ZJd+uqcz32HbDESD376EYF9h5cglZHOToTol+/JD0anJCNE0IoWYBRlpmsaxX3E4ZtejswIDAQAB
+    notify-url: /api/payments/alipay/notify
+    gateway-url: https://openapi-sandbox.dl.alipaydev.com/gateway.do
+    charset: UTF-8
+    format: json
+    sign-type: RSA2
+    # 添加超时配置
+    connect-timeout: 60000  # 连接超时，60秒
+    read-timeout: 60000     # 读取超时，60秒

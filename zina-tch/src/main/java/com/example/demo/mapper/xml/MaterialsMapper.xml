@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.mapper.MaterialsMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.example.demo.pojo.Materials">
+        <id column="id" property="id" />
+        <result column="video_id" property="videoId" />
+        <result column="name" property="name" />
+        <result column="description" property="description" />
+        <result column="file_url" property="fileUrl" />
+        <result column="file_type" property="fileType" />
+        <result column="file_size" property="fileSize" />
+        <result column="access_type" property="accessType" />
+        <result column="download_count" property="downloadCount" />
+        <result column="created_at" property="createdAt" />
+        <result column="updated_at" property="updatedAt" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, video_id, name, description, file_url, file_type, file_size, access_type, download_count, created_at, updated_at
+    </sql>
+
+</mapper>

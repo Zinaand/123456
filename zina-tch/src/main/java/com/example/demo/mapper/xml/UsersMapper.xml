@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.mapper.UsersMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.example.demo.pojo.Users">
+        <id column="id" property="id" />
+        <result column="member_number" property="memberNumber" />
+        <result column="name" property="name" />
+        <result column="id_number" property="idNumber" />
+        <result column="phone" property="phone" />
+        <result column="email" property="email" />
+        <result column="password" property="password" />
+        <result column="avatar" property="avatar" />
+        <result column="status" property="status" />
+        <result column="role" property="role" />
+        <result column="register_date" property="registerDate" />
+        <result column="last_login" property="lastLogin" />
+        <result column="created_at" property="createdAt" />
+        <result column="updated_at" property="updatedAt" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, member_number, name, id_number, phone, email, password, avatar, status, role, register_date, last_login, created_at, updated_at
+    </sql>
+
+</mapper>
