@@ -1,7 +1,8 @@
 import axios from 'axios';
-// 创建 axios 实例
+
+// 创建axios实例
 const api = axios.create({
-  baseURL: 'http://localhost:8090/', // 使用相对路径，配合Next.js代理
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8090',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -11,10 +12,12 @@ const api = axios.create({
 // 请求拦截器
 api.interceptors.request.use(
   (config) => {
-    // 从 localStorage 获取 token
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    // 从localStorage获取token（客户端）
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
     return config;
   },
@@ -29,23 +32,16 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       // 处理未授权错误
-      localStorage.removeItem('token');
-      window.location.href = '/login';
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }
 );
 
-// 用户相关 API
-export const userApi = {
-  login: (data: { username: string; password: string }) =>
-    api.post('/api/auth/login', data),
-  register: (data: { username: string; password: string; email: string }) =>
-    api.post('/api/auth/register', data),
-  getProfile: () => api.get('/api/user/profile'),
-};
-
-// 视频相关 API
+// 视频相关API
 export const videoApi = {
   getVideos: (params?: {
     page?: number;
@@ -79,6 +75,27 @@ export const videoApi = {
   getVideoStats: (id: number) => api.get(`/api/videos/${id}/stats`),
 };
 
+// 分类相关API
+export const categoryApi = {
+  getCategories: () => api.get('/api/categories'),
+  getCategoryById: (id: number) => api.get(`/api/categories/${id}`),
+};
+
+// 用户相关API
+export const userApi = {
+  login: (data: { username: string; password: string }) =>
+    api.post('/api/auth/login', data),
+  register: (data: { username: string; password: string; email: string }) =>
+    api.post('/api/auth/register', data),
+  getProfile: () => api.get('/api/user/profile'),
+};
+
+// 会员相关API
+export const membershipApi = {
+  getMembershipInfo: () => api.get('/api/membership'),
+  upgradeMembership: (planId: number) => api.post('/api/membership/upgrade', { planId }),
+};
+
 // 评论相关 API
 export const commentApi = {
   getComments: (videoId: number) => api.get(`/api/videos/${videoId}/comments`),
@@ -92,12 +109,6 @@ export const watchHistoryApi = {
   getHistory: () => api.get('/api/watch-history'),
   addToHistory: (videoId: number) => api.post('/api/watch-history', { videoId }),
   clearHistory: () => api.delete('/api/watch-history'),
-};
-
-// 会员相关 API
-export const membershipApi = {
-  getMembershipInfo: () => api.get('/api/membership'),
-  upgradeMembership: (planId: number) => api.post('/api/membership/upgrade', { planId }),
 };
 
 // 支付相关 API
@@ -200,12 +211,6 @@ export const materialApi = {
   getMaterials: () => api.get('/api/materials'),
   getMaterialById: (id: number) => api.get(`/api/materials/${id}`),
   downloadMaterial: (id: number) => api.get(`/api/materials/${id}/download`),
-};
-
-// 分类相关 API
-export const categoryApi = {
-  getCategories: () => api.get('/api/categories'),
-  getCategoryById: (id: number) => api.get(`/api/categories/${id}`),
 };
 
 // 统计分析相关 API
