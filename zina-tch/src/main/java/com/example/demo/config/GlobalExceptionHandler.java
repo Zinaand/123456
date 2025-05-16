@@ -1,5 +1,6 @@
 package com.example.demo.config;
 
+import com.example.demo.security.UnauthorizedException;
 import com.example.demo.utils.Result;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
@@ -61,6 +62,16 @@ public class GlobalExceptionHandler {
         }
         
         return Result.validateFailed(message.toString());
+    }
+    
+    /**
+     * 处理自定义未授权异常
+     */
+    @ExceptionHandler(UnauthorizedException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public Result<String> handleUnauthorizedException(UnauthorizedException e) {
+        log.error("权限不足: {}", e.getMessage(), e);
+        return Result.forbidden();
     }
     
     /**

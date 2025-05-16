@@ -1,5 +1,8 @@
 package com.example.demo.config;
 
+import com.example.demo.security.JwtAuthenticationFilter;
+import com.example.demo.security.JwtAuthenticationEntryPoint;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -7,6 +10,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -21,6 +25,12 @@ import java.util.Collections;
 @EnableWebSecurity
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
     
+    @Autowired
+    private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+    
+    @Autowired
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
+    
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         http
@@ -30,12 +40,23 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
             .cors().and()
             // 不需要session
             .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
+            // 未授权异常处理
+            .exceptionHandling().authenticationEntryPoint(jwtAuthenticationEntryPoint).and()
             // 请求授权
             .authorizeRequests()
             // 允许所有Options请求（预检请求）
-            .antMatchers("/**").permitAll()
+            .antMatchers("/**/auth/**", "/error").permitAll()
+            .antMatchers("/api/videos/**").permitAll() // 允许公开访问视频相关API
+            .antMatchers("/api/categories/**").permitAll() // 允许公开访问分类相关API
+            .antMatchers("/api/payments/callback/**").permitAll() // 允许支付回调
+            .antMatchers("/api/admin/**").hasRole("ADMIN") // 管理员API需要ADMIN角色
+            // 其他所有请求需要认证
+            .anyRequest().authenticated()
             // 关闭默认httpBasic认证
             .and().httpBasic().disable();
+        
+        // 添加JWT过滤器
+        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
     }
     
     /**

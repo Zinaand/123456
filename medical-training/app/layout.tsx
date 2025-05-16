@@ -5,6 +5,7 @@ import "./globals.css"
 import { Toaster } from "@/components/ui/toaster"
 
 import Navbar from "@/components/navbar"
+import { AuthProvider } from "@/contexts/AuthContext"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -21,13 +22,12 @@ export default function RootLayout({
   return (
       <html lang="zh-CN">
       <body className={inter.className}>
-       
-         
+        <AuthProvider>
           <main className="min-h-[calc(100vh-4rem)]">
             {children}
           </main>
           <Toaster />
-       
+        </AuthProvider>
       </body>
       </html>
   )

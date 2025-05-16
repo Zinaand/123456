@@ -3,6 +3,8 @@ package com.example.demo.controller;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.demo.pojo.Users;
+import com.example.demo.security.RequiresRoles;
+import com.example.demo.security.UserRole;
 import com.example.demo.service.UsersService;
 import com.example.demo.utils.JwtUtil;
 import com.example.demo.utils.PasswordUtil;
@@ -26,6 +28,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/users")
+@RequiresRoles({"admin", "super_admin"})
 public class UsersController {
 
     @Autowired
