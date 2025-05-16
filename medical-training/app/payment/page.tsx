@@ -121,6 +121,10 @@ const handlePayment = async () => {
       response = await paymentApi.createWechatPayment(paymentData);
     } else if (paymentMethod === "alipay") {
       // 调用支付宝支付接口
+      console.log("正在发起支付宝支付请求...");
+      const token = localStorage.getItem('token');
+      console.log("当前token状态:", token ? "已获取" : "未获取");
+      
       response = await paymentApi.createAlipayPayment(paymentData);
     } else {
       // 银行卡支付(简化处理，直接成功)
@@ -150,11 +154,37 @@ const handlePayment = async () => {
   } catch (error: any) {
     // 错误处理
     console.error("创建支付订单失败", error);
+    
+    // 详细打印错误信息以便调试
+    if (error.response) {
+      console.error("错误响应数据:", error.response.data);
+      console.error("错误状态码:", error.response.status);
+    }
+    
+    // 判断是否是权限或认证问题
+    const errorMsg = error.message || "";
+    const isAuthError = 
+      errorMsg.includes("token") || 
+      errorMsg.includes("认证") || 
+      errorMsg.includes("权限") || 
+      errorMsg.includes("未登录") ||
+      errorMsg.includes("Unauthorized") ||
+      errorMsg.includes("403") ||
+      errorMsg.includes("401");
+    
     toast({
       title: "创建支付订单失败",
-      description: error.message || error.response?.data?.message || "请稍后再试",
+      description: isAuthError ? 
+        "身份验证失败或已过期，请重新登录后再试" : 
+        (error.message || error.response?.data?.message || "请稍后再试"),
       variant: "destructive",
     });
+    
+    // 如果是认证错误，可以选择性地重定向到登录页
+    if (isAuthError) {
+      // 可以取消下面的注释来实现自动跳转到登录页
+      // router.push('/login');
+    }
   } finally {
     setLoading(false);  // 重置加载状态
   }

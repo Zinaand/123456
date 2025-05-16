@@ -48,7 +48,9 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
             .antMatchers("/**/auth/**", "/error").permitAll()
             .antMatchers("/api/videos/**").permitAll() // 允许公开访问视频相关API
             .antMatchers("/api/categories/**").permitAll() // 允许公开访问分类相关API
-            .antMatchers("/api/payments/callback/**").permitAll() // 允许支付回调
+            .antMatchers("/api/payments/*/notify", "/api/payments/*/return").permitAll()
+            .antMatchers("/api/payments/alipay", "/api/payments/wechat").permitAll() // 允许公开访问支付接口
+            .antMatchers("/api/payments/*/status").permitAll() // 允许公开访问支付状态查询
             .antMatchers("/api/admin/**").hasRole("ADMIN") // 管理员API需要ADMIN角色
             // 其他所有请求需要认证
             .anyRequest().authenticated()

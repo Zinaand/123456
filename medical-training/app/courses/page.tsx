@@ -8,11 +8,13 @@ import { ApiResponse, PaginatedResponse, Video } from "@/types";
 import { videoApi } from "@/lib/api";
 import { formatDuration } from "@/lib/utils";
 import { getCategoryNameById } from "@/lib/category-utils";
+import { Loader2, ImageOff } from "lucide-react";
 
 export default function CoursesPage() {
   const [courses, setCourses] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [imgError, setImgError] = useState<{[key: number]: boolean}>({});
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -40,6 +42,11 @@ export default function CoursesPage() {
 
     fetchCourses();
   }, []);
+
+  // 处理图片加载错误
+  const handleImageError = (courseId: number) => {
+    setImgError(prev => ({...prev, [courseId]: true}));
+  };
 
   // 加载状态
   if (loading) {
@@ -97,15 +104,18 @@ export default function CoursesPage() {
         {courses.map((course) => (
           <Card key={course.id} className="overflow-hidden">
             <div className="aspect-video relative bg-muted">
-              {course.thumbnailUrl ? (
+              {course.thumbnailUrl && !imgError[course.id] ? (
                 <img 
                   src={course.thumbnailUrl} 
                   alt={course.title} 
                   className="w-full h-full object-cover"
+                  onError={() => handleImageError(course.id)}
+                  loading="lazy"
                 />
               ) : (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-muted-foreground">暂无缩略图</span>
+                <div className="absolute inset-0 flex items-center justify-center bg-slate-100">
+                  <ImageOff className="w-12 h-12 text-slate-400" />
+                  <span className="sr-only">暂无缩略图</span>
                 </div>
               )}
               {course.accessType === "internal" && (
@@ -137,6 +147,12 @@ export default function CoursesPage() {
           </Card>
         ))}
       </div>
+
+      {courses.length === 0 && (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">暂无课程</p>
+        </div>
+      )}
     </div>
   );
 } 

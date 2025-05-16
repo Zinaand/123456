@@ -135,11 +135,15 @@ export const paymentApi = {
     };
     console.log('发送微信支付请求:', JSON.stringify(paymentData));
     
+    // 获取token
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    
     // 直接使用fetch，绕过axios
     return fetch('http://localhost:8090/api/payments/wechat', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
       },
       body: JSON.stringify(paymentData)
     }).then(response => {
@@ -168,11 +172,15 @@ export const paymentApi = {
     };
     console.log('发送支付宝支付请求:', JSON.stringify(paymentData));
     
+    // 获取token
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    
     // 直接使用fetch，绕过axios
     return fetch('http://localhost:8090/api/payments/alipay', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
       },
       body: JSON.stringify(paymentData)
     }).then(response => {

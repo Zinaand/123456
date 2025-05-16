@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import { Clock, Eye, CalendarIcon, Tag } from "lucide-react";
 import { ApiResponse, Video } from "@/types";
@@ -9,6 +9,8 @@ import { formatDuration } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getCategoryNameById } from "@/lib/category-utils";
+import { toast } from "@/components/ui/use-toast";
+import { VideoPlayer } from "@/components/video-player";
 
 export default function CourseDetailPage() {
   const params = useParams();
@@ -17,6 +19,7 @@ export default function CourseDetailPage() {
   const [video, setVideo] = useState<Video | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   useEffect(() => {
     const fetchVideoDetail = async () => {
@@ -80,17 +83,26 @@ export default function CourseDetailPage() {
     <div className="container py-8">
       <div className="max-w-5xl mx-auto">
         {/* 视频播放器 */}
-        <div className="w-full aspect-video bg-black rounded-lg mb-6 overflow-hidden">
+        <div className="w-full aspect-video mb-6">
           {video.videoUrl ? (
-            <video
-              className="w-full h-full"
-              controls
-              poster={video.thumbnailUrl}
-              src={video.videoUrl}
+            <VideoPlayer
+              videoUrl={video.videoUrl}
+              thumbnailUrl={video.thumbnailUrl}
+              title={video.title}
+              onPlay={() => setIsPlaying(true)}
+              onPause={() => setIsPlaying(false)}
+              onError={() => {
+                toast({
+                  title: "视频加载失败",
+                  description: "无法加载视频，请检查URL或稍后重试",
+                  variant: "destructive",
+                });
+              }}
+              allowDownload={false}
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-muted">
-              <p className="text-muted-foreground">视频播放器</p>
+            <div className="w-full h-full flex items-center justify-center bg-muted rounded-lg">
+              <p className="text-muted-foreground">视频未找到</p>
             </div>
           )}
         </div>
@@ -135,7 +147,14 @@ export default function CourseDetailPage() {
 
         {/* 相关操作 */}
         <div className="mt-8 flex flex-wrap gap-4">
-          <Button>开始学习</Button>
+          <Button onClick={() => {
+            window.scrollTo({
+              top: 0,
+              behavior: 'smooth'
+            });
+          }}>
+            {isPlaying ? "正在学习" : "开始学习"}
+          </Button>
           <Button variant="outline">收藏课程</Button>
         </div>
       </div>
