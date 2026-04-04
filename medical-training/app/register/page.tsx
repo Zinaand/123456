@@ -63,19 +63,43 @@ export default function RegisterPage() {
       };
       
       const response = await userApi.register(registerData);
-      
-      // 保存token到localStorage
-      localStorage.setItem("token", response.data.data.token);
-      localStorage.setItem("userId", response.data.data.userId);
-      localStorage.setItem("userName", response.data.data.name);
-      localStorage.setItem("userRole", response.data.data.role);
-      
+      const body = response.data as {
+        success?: boolean;
+        code?: number;
+        message?: string;
+        data?: { token: string; userId: number; name: string; role: string };
+      };
+
+      // 后端 Result 在业务失败时仍常为 HTTP 200，须看 success/code，否则会读 data.token 抛错
+      if (body.success === false || (body.code != null && body.code !== 200)) {
+        toast({
+          title: "注册失败",
+          description: body.message || "注册失败",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const payload = body.data;
+      if (!payload?.token) {
+        toast({
+          title: "注册失败",
+          description: body.message || "服务器未返回登录信息",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      localStorage.setItem("token", payload.token);
+      localStorage.setItem("userId", String(payload.userId));
+      localStorage.setItem("userName", payload.name);
+      localStorage.setItem("userRole", payload.role);
+
       toast({
         title: "注册成功",
         description: "欢迎加入医学培训系统",
       });
-      
-      // 跳转到首页
+
       router.push("/");
     } catch (error: any) {
       toast({

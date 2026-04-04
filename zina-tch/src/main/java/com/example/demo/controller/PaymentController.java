@@ -5,11 +5,13 @@ import com.example.demo.dto.PaymentResponse;
 import com.example.demo.entity.Payment;
 import com.example.demo.service.PaymentService;
 import com.example.demo.util.ApiResponse;
-import com.example.demo.repository.PaymentRepository;
+import com.example.demo.utils.JwtUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
@@ -29,9 +31,34 @@ public class PaymentController {
     private final ObjectMapper objectMapper;
     private static final Logger log = LoggerFactory.getLogger(PaymentController.class);
     
+    @Autowired
+    private JwtUtil jwtUtil;
+    
     public PaymentController(PaymentService paymentService, @Qualifier("customObjectMapper") ObjectMapper objectMapper) {
         this.paymentService = paymentService;
         this.objectMapper = objectMapper;
+    }
+
+    /**
+     * 从请求头提取 userId（优先）
+     */
+    private Long extractUserIdFromAuthHeader(HttpServletRequest request) {
+        String bearerToken = request.getHeader("Authorization");
+        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
+            String token = bearerToken.substring(7);
+            try {
+                if (jwtUtil.validateToken(token)) {
+                    Integer userId = jwtUtil.getUserIdFromToken(token);
+                    if (userId != null) {
+                        log.info("从JWT Token提取用户ID: {}", userId);
+                        return userId.longValue();
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("从JWT Token解析用户ID失败: {}", e.getMessage());
+            }
+        }
+        return null;
     }
     
     /**
@@ -70,10 +97,9 @@ public class PaymentController {
                 request.setDescription(requestMap.get("description").toString());
             }
             
-            // 设置用户ID
-            Long userId = null;
-            // 首先从请求参数中获取userId
-            if (requestMap.containsKey("userId")) {
+            // 设置用户ID：优先从 JWT token 解析，其次从请求参数，最后从认证信息
+            Long userId = extractUserIdFromAuthHeader(httpRequest);
+            if (userId == null && requestMap.containsKey("userId")) {
                 Object userIdObj = requestMap.get("userId");
                 if (userIdObj instanceof Number) {
                     userId = ((Number) userIdObj).longValue();
@@ -85,8 +111,7 @@ public class PaymentController {
                     }
                 }
             }
-            
-            // 如果请求参数中没有userId，尝试从认证信息获取
+            // 如果仍未获取到userId，尝试从认证信息获取
             if (userId == null && authentication != null && authentication.getPrincipal() != null) {
                 // 根据您的用户对象结构获取userId
                 Object principal = authentication.getPrincipal();
@@ -107,10 +132,9 @@ public class PaymentController {
                 }
             }
             
-            // 如果仍未获取到userId，设置默认值为1
+            // 如果仍未获取到userId，记录警告（不应在生产环境出现）
             if (userId == null) {
-                userId = 1L; // 设置默认用户ID，避免数据库约束错误
-                log.warn("未找到用户ID，使用默认ID: {}", userId);
+                log.warn("未找到用户ID，无法关联支付订单与用户，请确认用户已登录");
             }
             
             request.setUserId(userId);
@@ -168,10 +192,9 @@ public class PaymentController {
                 request.setDescription(requestMap.get("description").toString());
             }
             
-            // 设置用户ID
-            Long userId = null;
-            // 首先从请求参数中获取userId
-            if (requestMap.containsKey("userId")) {
+            // 设置用户ID：优先从 JWT token 解析，其次从请求参数，最后从认证信息
+            Long userId = extractUserIdFromAuthHeader(httpRequest);
+            if (userId == null && requestMap.containsKey("userId")) {
                 Object userIdObj = requestMap.get("userId");
                 if (userIdObj instanceof Number) {
                     userId = ((Number) userIdObj).longValue();
@@ -183,8 +206,7 @@ public class PaymentController {
                     }
                 }
             }
-            
-            // 如果请求参数中没有userId，尝试从认证信息获取
+            // 如果仍未获取到userId，尝试从认证信息获取
             if (userId == null && authentication != null && authentication.getPrincipal() != null) {
                 // 根据您的用户对象结构获取userId
                 Object principal = authentication.getPrincipal();
@@ -205,10 +227,9 @@ public class PaymentController {
                 }
             }
             
-            // 如果仍未获取到userId，设置默认值为1
+            // 如果仍未获取到userId，记录警告（不应在生产环境出现）
             if (userId == null) {
-                userId = 1L; // 设置默认用户ID，避免数据库约束错误
-                log.warn("未找到用户ID，使用默认ID: {}", userId);
+                log.warn("未找到用户ID，无法关联支付订单与用户，请确认用户已登录");
             }
             
             request.setUserId(userId);
@@ -301,16 +322,7 @@ public class PaymentController {
         log.info("模拟支付成功请求，支付ID: {}", paymentId);
         
         try {
-            // 查询支付订单
-            Payment payment = paymentService.queryPaymentStatus(paymentId).getPaymentId() != null ? 
-                    new Payment() : null;
-            
-            if (payment == null) {
-                return ResponseEntity.badRequest().body(
-                        ApiResponse.badRequest("支付订单不存在"));
-            }
-            
-            // 通过服务层更新支付状态
+            // 直接通过服务层模拟支付成功（内部已处理查库和状态更新）
             boolean success = paymentService.mockPaymentSuccess(paymentId);
             
             if (success) {

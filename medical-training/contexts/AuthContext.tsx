@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { membershipApi } from "@/lib/api";
 
 // 定义用户类型
 interface User {
@@ -9,6 +10,11 @@ interface User {
   name: string;
   role: string;
   memberNumber?: string;
+  // 会员相关字段
+  membershipType?: string | null;
+  membershipStartDate?: string | null;
+  membershipExpireDate?: string | null;
+  isValidMember?: boolean;
 }
 
 // 定义身份验证上下文类型
@@ -19,6 +25,7 @@ interface AuthContextType {
   login: (token: string, userData: User) => void;
   logout: () => void;
   checkAuth: () => boolean;
+  refreshMembership: () => Promise<void>;
 }
 
 // 创建上下文
@@ -90,6 +97,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return !!token;
   };
 
+  // 刷新会员信息（支付成功后调用）
+  const refreshMembership = async () => {
+    if (!isAuthenticated) return;
+    try {
+      const response = await membershipApi.getMembershipInfo();
+      const info = response.data?.data;
+      if (info) {
+        const updatedUser: User = {
+          ...user!,
+          role: info.role,
+          membershipType: info.membershipType,
+          membershipStartDate: info.membershipStartDate,
+          membershipExpireDate: info.membershipExpireDate,
+          isValidMember: info.isValidMember,
+        };
+        localStorage.setItem("userInfo", JSON.stringify(updatedUser));
+        localStorage.setItem("userRole", info.role);
+        setUser(updatedUser);
+      }
+    } catch (error) {
+      console.error("刷新会员信息失败:", error);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -99,6 +130,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         login,
         logout,
         checkAuth,
+        refreshMembership,
       }}
     >
       {children}

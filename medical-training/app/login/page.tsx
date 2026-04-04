@@ -22,6 +22,10 @@ interface LoginResponse {
   name: string
   role: string
   memberNumber?: string
+  membershipType?: string | null
+  membershipStartDate?: string | null
+  membershipExpireDate?: string | null
+  isValidMember?: boolean
 }
 
 export default function LoginPage() {
@@ -68,6 +72,10 @@ export default function LoginPage() {
         name: userData.name,
         role: userData.role,
         memberNumber: userData.memberNumber || "",
+        membershipType: userData.membershipType || null,
+        membershipStartDate: userData.membershipStartDate || null,
+        membershipExpireDate: userData.membershipExpireDate || null,
+        isValidMember: userData.isValidMember || false,
       })
 
       toast({

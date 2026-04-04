@@ -9,6 +9,7 @@ import { videoApi } from "@/lib/api";
 import { formatDuration } from "@/lib/utils";
 import { getCategoryNameById } from "@/lib/category-utils";
 import { Loader2, ImageOff } from "lucide-react";
+import React from "react";
 
 export default function CoursesPage() {
   const [courses, setCourses] = useState<Video[]>([]);
@@ -103,27 +104,29 @@ export default function CoursesPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {courses.map((course) => (
           <Card key={course.id} className="overflow-hidden">
-            <div className="aspect-video relative bg-muted">
-              {course.thumbnailUrl && !imgError[course.id] ? (
-                <img 
-                  src={course.thumbnailUrl} 
-                  alt={course.title} 
-                  className="w-full h-full object-cover"
-                  onError={() => handleImageError(course.id)}
-                  loading="lazy"
-                />
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center bg-slate-100">
-                  <ImageOff className="w-12 h-12 text-slate-400" />
-                  <span className="sr-only">暂无缩略图</span>
-                </div>
-              )}
-              {course.accessType === "internal" && (
-                <div className="absolute top-2 right-2 bg-primary text-white text-xs px-2 py-1 rounded">
-                  会员专享
-                </div>
-              )}
-            </div>
+            <Link href={`/courses/${course.id}`} className="block">
+              <div className="aspect-video relative bg-muted cursor-pointer group">
+                {course.thumbnailUrl && !imgError[course.id] ? (
+                  <img 
+                    src={course.thumbnailUrl.startsWith('/uploads/') ? course.thumbnailUrl : `/uploads/thumbnails/${course.thumbnailUrl}`}
+                    alt={course.title}
+                    className="w-full h-full object-cover group-hover:brightness-90 transition"
+                    onError={() => handleImageError(course.id)}
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center bg-slate-100">
+                    <ImageOff className="w-12 h-12 text-slate-400" />
+                    <span className="sr-only">暂无缩略图</span>
+                  </div>
+                )}
+                {course.accessType === "internal" && (
+                  <div className="absolute top-2 right-2 bg-primary text-white text-xs px-2 py-1 rounded">
+                    会员专享
+                  </div>
+                )}
+              </div>
+            </Link>
             <CardHeader className="p-4">
               <CardTitle className="text-lg">{course.title}</CardTitle>
               <CardDescription className="line-clamp-2">{course.description}</CardDescription>

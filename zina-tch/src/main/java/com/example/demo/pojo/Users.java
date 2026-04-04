@@ -84,5 +84,20 @@ public class Users implements Serializable {
 
     private Date updatedAt;
 
+    /**
+     * 会员类型 (YEARLY/QUARTERLY/MONTHLY/NONE)
+     */
+    private String membershipType;
+
+    /**
+     * 会员开始时间
+     */
+    private Date membershipStartDate;
+
+    /**
+     * 会员到期时间
+     */
+    private Date membershipExpireDate;
+
 
 }

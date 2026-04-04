@@ -4,10 +4,14 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.demo.common.ApiResponse;
 import com.example.demo.dto.VideoDTO;
+import com.example.demo.pojo.Users;
 import com.example.demo.pojo.Videos;
+import com.example.demo.service.UserService;
+import com.example.demo.service.UsersService;
 import com.example.demo.service.VideoCategoriesService;
 import com.example.demo.service.VideosService;
 import com.example.demo.util.VideoUtils;
+import com.example.demo.utils.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -40,6 +44,9 @@ public class VideosController {
 
     private final VideosService videosService;
     private final VideoCategoriesService videoCategoriesService;
+    private final UsersService usersService;
+    private final UserService userService;
+    private final JwtUtil jwtUtil;
     
     // 视频文件存储路径
     private static final String VIDEO_UPLOAD_DIR = "/uploads/videos/";
@@ -99,14 +106,33 @@ public class VideosController {
      * 获取视频详情
      */
     @GetMapping("/{id}")
-    public ApiResponse<Videos> getById(@PathVariable Integer id) {
+    public ApiResponse<Videos> getById(@PathVariable Integer id, @RequestHeader(value = "Authorization", required = false) String authHeader) {
         Videos video = videosService.getById(id);
         if (video == null) {
             return ApiResponse.badRequest("视频不存在");
         }
+        // 公开视频直接返回
+        if (!"internal".equals(video.getAccessType())) {
+            return ApiResponse.success(video);
+        }
+        // 会员视频，校验token
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ApiResponse.unauthorized("请先登录");
+        }
+        String token = authHeader.substring(7);
+        if (!jwtUtil.validateToken(token)) {
+            return ApiResponse.unauthorized("登录已过期，请重新登录");
+        }
+        Integer userId = jwtUtil.getUserIdFromToken(token);
+        Users user = usersService.getById(userId);
+        // admin/super_admin 始终可访问；member 角色需检查会员是否未过期
+        boolean hasAccess = userService.isValidMember(user);
+        if (!hasAccess) {
+            return ApiResponse.forbidden("仅会员可观看该视频，请先开通会员");
+        }
         return ApiResponse.success(video);
     }
-    
+
     /**
      * 创建新视频
      */
@@ -354,6 +380,33 @@ public class VideosController {
         Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
         
         return newFilename;
+    }
+
+    @GetMapping("/secure/{id}")
+    public ApiResponse<Videos> getByIdWithAuth(@PathVariable Integer id, @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        Videos video = videosService.getById(id);
+        if (video == null) {
+            return ApiResponse.badRequest("视频不存在");
+        }
+        // 公开视频直接返回
+        if (!"internal".equals(video.getAccessType())) {
+            return ApiResponse.success(video);
+        }
+        // 会员视频，校验token
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ApiResponse.unauthorized("请先登录");
+        }
+        String token = authHeader.substring(7);
+        if (!jwtUtil.validateToken(token)) {
+            return ApiResponse.unauthorized("登录已过期，请重新登录");
+        }
+        Integer userId = jwtUtil.getUserIdFromToken(token);
+        Users user = usersService.getById(userId);
+        boolean hasAccess = userService.isValidMember(user);
+        if (!hasAccess) {
+            return ApiResponse.forbidden("仅会员可观看该视频，请先开通会员");
+        }
+        return ApiResponse.success(video);
     }
 }
 

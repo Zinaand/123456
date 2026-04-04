@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, Check, CreditCard, Loader2 } from "lucide-react"
@@ -12,10 +12,14 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "@/components/ui/use-toast"
-import { paymentApi } from "@/lib/api"
+import { paymentApi, membershipApi } from "@/lib/api"
+import { useAuth } from "@/contexts/AuthContext"
 
 export default function PaymentPage() {
   const router = useRouter()
+  const { refreshMembership } = useAuth()
+  const refreshMembershipRef = useRef(refreshMembership)
+  refreshMembershipRef.current = refreshMembership
   const [paymentStatus, setPaymentStatus] = useState<"pending" | "processing" | "success" | "error">("pending")
   const [membershipPlan, setMembershipPlan] = useState<"yearly" | "quarterly" | "monthly">("yearly")
   const [paymentMethod, setPaymentMethod] = useState<"card" | "alipay" | "wechat">("card")
@@ -60,16 +64,10 @@ useEffect(() => {
         if (status === "SUCCESS") {
           setPaymentStatus("success");  // 更新支付状态为成功
           clearInterval(intervalId as NodeJS.Timeout);  // 停止轮询
-          
-          // 更新本地用户信息，添加会员状态
-          const userInfo = localStorage.getItem("userInfo");
-          if (userInfo) {
-            const userData = JSON.parse(userInfo);
-            userData.membershipType = membershipPlan;
-            userData.membershipExpireDate = response.data.data.expireDate;
-            localStorage.setItem("userInfo", JSON.stringify(userData));
-          }
-          
+
+          // 从后端刷新会员信息，确保角色已更新
+          refreshMembershipRef.current();
+
           // 显示支付成功提示
           toast({
             title: "支付成功",

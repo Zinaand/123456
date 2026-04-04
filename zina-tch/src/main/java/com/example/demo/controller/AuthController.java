@@ -2,6 +2,7 @@ package com.example.demo.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.example.demo.pojo.Users;
+import com.example.demo.service.UserService;
 import com.example.demo.service.UsersService;
 import com.example.demo.utils.JwtUtil;
 import com.example.demo.utils.PasswordUtil;
@@ -27,6 +28,9 @@ public class AuthController {
     
     @Autowired
     private UsersService usersService;
+
+    @Autowired
+    private UserService userService;
     
     @Autowired
     private PasswordUtil passwordUtil;
@@ -77,6 +81,12 @@ public class AuthController {
         result.put("userId", user.getId());
         result.put("name", user.getName());
         result.put("role", user.getRole());
+        result.put("memberNumber", user.getMemberNumber());
+        // 返回会员信息
+        result.put("membershipType", user.getMembershipType());
+        result.put("membershipStartDate", user.getMembershipStartDate());
+        result.put("membershipExpireDate", user.getMembershipExpireDate());
+        result.put("isValidMember", isValidMember(user));
         
         return Result.success(result, "登录成功");
     }
@@ -135,5 +145,18 @@ public class AuthController {
         result.put("role", user.getRole());
         
         return Result.success(result, "注册成功");
+    }
+
+    /**
+     * 判断用户是否为有效会员
+     */
+    private boolean isValidMember(Users user) {
+        if (user == null) return false;
+        if ("admin".equals(user.getRole()) || "super_admin".equals(user.getRole())) return true;
+        if ("member".equals(user.getRole())) {
+            return user.getMembershipExpireDate() != null
+                    && user.getMembershipExpireDate().after(new Date());
+        }
+        return false;
     }
 } 

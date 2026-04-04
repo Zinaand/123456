@@ -514,7 +514,7 @@ export function VideoForm({ videoId, onSuccess }: VideoFormProps) {
                   </Card>
                 )}
               </div>
-              <FormDescription>上传视频的封面图片，如不上传将自动从视频中截取</FormDescription>
+              <FormDescription>上传本地图片作为视频封面，不支持URL。</FormDescription>
             </FormItem>
           </div>
         </div>

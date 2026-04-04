@@ -1,13 +1,17 @@
 package com.example.demo.service;
 
 
+
 import com.example.demo.repository.VideoHistoryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,13 +31,13 @@ public class VideoHistoryService {
         logger.info("开始获取所有用户的总观看时间");
         List<Object[]> results = videoHistoryRepository.findTotalWatchTimePerUser();
         logger.info("查询结果: {}", results);
-        
+
         Map<Integer, Long> userWatchTimeMap = new HashMap<>();
 
         // 检查结果是否为空
         if (results != null && !results.isEmpty()) {
             logger.info("查询返回了 {} 条记录", results.size());
-            
+
             for (Object[] result : results) {
                 if (result != null && result.length >= 2 && result[0] != null && result[1] != null) {
                     Integer userId = (Integer) result[0];
@@ -52,6 +56,9 @@ public class VideoHistoryService {
         return userWatchTimeMap;
     }
 
+
+
+
     /**
      * 获取所有视频的总播放时间统计
      * @return Map<视频ID, 总播放时间>
@@ -60,13 +67,13 @@ public class VideoHistoryService {
         logger.info("开始获取所有视频的总播放时间");
         List<Object[]> results = videoHistoryRepository.findTotalPlayTimePerVideo();
         logger.info("查询结果: {}", results);
-        
+
         Map<Integer, Long> videoPlayTimeMap = new HashMap<>();
 
         // 检查结果是否为空
         if (results != null && !results.isEmpty()) {
             logger.info("查询返回了 {} 条记录", results.size());
-            
+
             for (Object[] result : results) {
                 if (result != null && result.length >= 2 && result[0] != null && result[1] != null) {
                     Integer videoId = (Integer) result[0];
@@ -84,6 +91,50 @@ public class VideoHistoryService {
         logger.info("返回视频播放时间映射，包含 {} 个视频", videoPlayTimeMap.size());
         return videoPlayTimeMap;
     }
+
+    /**
+     * 获取每个用户观看的视频ID列表
+     * @return Map<用户ID, 观看的视频ID列表>
+     */
+    public Map<Integer, List<Integer>> getUserWatchedVideoIds() {
+        logger.info("开始获取每个用户观看的视频ID列表");
+        List<Object[]> results = videoHistoryRepository.findWatchedVideoIdsPerUser();
+        logger.info("查询结果: {}", results);
+
+        Map<Integer, List<Integer>> userVideoMap = new HashMap<>();
+
+        if (results != null && !results.isEmpty()) {
+            logger.info("查询返回了 {} 条记录", results.size());
+
+            // 使用Java 8 Stream API进行分组
+            userVideoMap = results.stream()
+                    .filter(result -> result != null && result.length >= 2 && result[0] != null && result[1] != null)
+                    .collect(Collectors.groupingBy(
+                            result -> (Integer) result[0],
+                            Collectors.mapping(
+                                    result -> (Integer) result[1],
+                                    Collectors.toList()
+                            )
+                    ));
+        } else {
+            logger.warn("未找到用户观看视频记录");
+        }
+
+        logger.info("返回用户视频映射，包含 {} 个用户", userVideoMap.size());
+        return userVideoMap;
+    }
+
+    /**
+     * 获取特定用户观看的视频ID列表
+     * @param userId 用户ID
+     * @return 观看的视频ID列表，如果没有记录则返回空列表
+     */
+    public List<Integer> getWatchedVideoIdsByUser(Integer userId) {
+        Map<Integer, List<Integer>> allUserVideos = getUserWatchedVideoIds();
+        return allUserVideos.getOrDefault(userId, Collections.emptyList());
+    }
+
+
 
     /**
      * 获取特定用户的总观看时间

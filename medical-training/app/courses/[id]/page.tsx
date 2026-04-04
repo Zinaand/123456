@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { getCategoryNameById } from "@/lib/category-utils";
 import { toast } from "@/components/ui/use-toast";
 import { VideoPlayer } from "@/components/video-player";
+import React from "react";
 
 export default function CourseDetailPage() {
   const params = useParams();
@@ -66,8 +67,8 @@ export default function CourseDetailPage() {
     return (
       <div className="container py-8">
         <div className="max-w-5xl mx-auto text-center">
-          <h1 className="text-2xl font-bold mb-4">出错了</h1>
-          <p className="text-red-500 mb-4">{error || "未找到该课程"}</p>
+          <h1 className="text-2xl font-bold mb-4">请注册会员</h1>
+         
           <Button onClick={() => window.history.back()}>返回上一页</Button>
         </div>
       </div>
@@ -87,7 +88,7 @@ export default function CourseDetailPage() {
           {video.videoUrl ? (
             <VideoPlayer
               videoUrl={video.videoUrl}
-              thumbnailUrl={video.thumbnailUrl}
+              thumbnailUrl={video.thumbnailUrl && video.thumbnailUrl.startsWith('/uploads/') ? video.thumbnailUrl : `/uploads/thumbnails/${video.thumbnailUrl}`}
               title={video.title}
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}

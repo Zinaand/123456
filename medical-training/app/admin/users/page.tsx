@@ -30,6 +30,7 @@ interface User {
   email: string;
   registerDate: string;
   status: string;
+  role: string;
 }
 
 export default function UsersPage() {
@@ -233,13 +234,14 @@ export default function UsersPage() {
                     <TableHead>联系电话</TableHead>
                     <TableHead>注册日期</TableHead>
                     <TableHead>状态</TableHead>
+                    <TableHead>会员状态</TableHead>
                     <TableHead>操作</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {users.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-4">
+                      <TableCell colSpan={8} className="text-center py-4">
                         暂无会员数据
                       </TableCell>
                     </TableRow>
@@ -254,6 +256,11 @@ export default function UsersPage() {
                         <TableCell>
                           <Badge variant={user.status === "active" ? "outline" : "secondary"}>
                             {user.status === "active" ? "正常" : "已禁用"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={user.role === "user" ? "secondary" : "default"}>
+                            {user.role === "user" ? "非会员" : "会员"}
                           </Badge>
                         </TableCell>
                         <TableCell>

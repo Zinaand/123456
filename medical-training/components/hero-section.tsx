@@ -35,7 +35,7 @@ export default function HeroSection() {
               alt="医护培训课程"
               className="aspect-video object-cover"
               height="310"
-              src="/placeholder.svg?height=310&width=550"
+              src="/uploads/thumbnails/13.jpg"
               width="550"
             />
           </div>

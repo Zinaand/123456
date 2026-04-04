@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +36,8 @@ public class drdController {
         }
     }
 
+
+
     @GetMapping("/video-play-time")
     public ResponseEntity<Map<Integer, Long>> getAllVideoPlayTime() {
         logger.info("接收到获取所有视频播放时间的请求");
@@ -43,6 +47,33 @@ public class drdController {
             return ResponseEntity.ok(stats);
         } catch (Exception e) {
             logger.error("获取视频播放时间时发生错误", e);
+            throw e;
+        }
+    }
+
+
+    @GetMapping("/user-videos")
+    public ResponseEntity<Map<Integer, List<Integer>>> getAllUserWatchedVideos() {
+        logger.info("接收到获取所有用户观看视频列表的请求");
+        try {
+            Map<Integer, List<Integer>> stats = videoHistoryService.getUserWatchedVideoIds();
+            logger.info("成功获取用户观看视频数据，返回 {} 条用户记录", stats.size());
+            return ResponseEntity.ok(stats);
+        } catch (Exception e) {
+            logger.error("获取用户观看视频列表时发生错误", e);
+            throw e;
+        }
+    }
+
+    @GetMapping("/user/{userId}/videos")
+    public ResponseEntity<List<Integer>> getUserWatchedVideos(@PathVariable int userId) {
+        logger.info("接收到获取用户ID={}观看视频列表的请求", userId);
+        try {
+            List<Integer> videos = videoHistoryService.getWatchedVideoIdsByUser(userId);
+            logger.info("用户ID={} 观看了 {} 个视频", userId, videos.size());
+            return ResponseEntity.ok(videos);
+        } catch (Exception e) {
+            logger.error("获取用户ID={}观看视频列表时发生错误", userId, e);
             throw e;
         }
     }

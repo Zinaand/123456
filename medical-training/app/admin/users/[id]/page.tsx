@@ -18,6 +18,7 @@ interface UserDetails {
   email: string;
   registerDate: string;
   status: string;
+  role: string;
   // 可以根据需要添加更多字段
 }
 
@@ -109,6 +110,13 @@ export default function UserDetailsPage({ params }: { params: { id: string } }) 
               <p className="text-sm text-muted-foreground">状态</p>
               <Badge variant={user.status === "active" ? "outline" : "secondary"}>
                 {user.status === "active" ? "正常" : "已禁用"}
+              </Badge>
+            </div>
+
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">会员状态</p>
+              <Badge variant={user.role === "user" ? "secondary" : "default"}>
+                {user.role === "user" ? "非会员" : "会员"}
               </Badge>
             </div>
 
