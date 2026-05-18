@@ -67,7 +67,18 @@ public class AuthController {
         if (!passwordUtil.matches(password, user.getPassword())) {
             return Result.validateFailed("用户名或密码错误");
         }
-        
+
+        // 检查用户状态 - 禁用用户不允许登录
+        if (!"active".equals(user.getStatus())) {
+            if ("inactive".equals(user.getStatus())) {
+                return Result.error("账号已被禁用，请联系管理员");
+            } else if ("banned".equals(user.getStatus())) {
+                return Result.error("账号已被封禁，请联系管理员");
+            } else {
+                return Result.error("账号状态异常，请联系管理员");
+            }
+        }
+
         // 更新最后登录时间
         user.setLastLogin(new Date());
         usersService.updateById(user);

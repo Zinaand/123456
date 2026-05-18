@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>医护培训平台 ER 图</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+            background: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 16px 40px;
+            overflow: auto;
+        }
+
+        h1 { font-size: 15px; color: #333; margin-bottom: 3px; font-weight: 700; }
+        .subtitle { font-size: 11px; color: #999; margin-bottom: 18px; }
+
+        /* ===== 画布 ===== */
+        .canvas {
+            position: relative;
+            width: 1480px;
+            height: 920px;
+        }
+
+        /* ===== 圆形主键 ===== */
+        .pk {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            border: 2px solid #555;
+            border-radius: 50%;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-weight: 700;
+            color: #333;
+            z-index: 2;
+            line-height: 1.2;
+        }
+
+        /* ===== 方形实体 ===== */
+        .ent {
+            position: absolute;
+            width: 92px;
+            height: 42px;
+            border: 2.5px solid #333;
+            border-radius: 3px;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+            color: #222;
+            z-index: 3;
+            text-align: center;
+            line-height: 1.25;
+        }
+
+        /* ===== 菱形关系 ===== */
+        .rel {
+            position: absolute;
+            width: 68px;
+            height: 50px;
+            z-index: 4;
+        }
+
+        .rel svg {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0; left: 0;
+        }
+
+        .rel .txt {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 8.5px;
+            font-weight: 700;
+            color: #333;
+            line-height: 1.3;
+            pointer-events: none;
+        }
+
+        /* ===== 连线层 (用 div 模拟线条) ===== */
+        /* 垂直短线：pk → ent */
+        .vline {
+            position: absolute;
+            width: 0;
+            border-left: 1.5px solid #555;
+            z-index: 1;
+        }
+
+        /* 横线 */
+        .hline {
+            position: absolute;
+            height: 0;
+            border-top: 1.5px solid #555;
+            z-index: 1;
+        }
+
+        /* 斜线 / 折线：用 SVG 背景 */
+        .canvas {
+            background-image:
+                radial-gradient(circle, #ccc 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        /* ===== 基数 ===== */
+        .card {
+            position: absolute;
+            font-size: 12px;
+            font-weight: 800;
+            color: #e74c3c;
+            z-index: 10;
+            font-family: 'Times New Roman', serif;
+        }
+
+        /* ===== 图例 ===== */
+        .legend {
+            margin-top: 18px;
+            display: flex;
+            gap: 18px;
+            align-items: center;
+            font-size: 11px;
+            color: #555;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .leg-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .leg-ent {
+            width: 18px; height: 12px;
+            border: 2px solid #333; border-radius: 2px; background: #fff;
+        }
+        .leg-pk {
+            width: 13px; height: 13px;
+            border: 2px solid #555; border-radius: 50%; background: #fff;
+        }
+        .leg-rel {
+            width: 11px; height: 11px;
+            border: 2px solid #333; background: #fff;
+            transform: rotate(45deg);
+        }
+
+        /* 实体高亮 */
+        .ent:hover { background: #f5f5f5; }
+        .pk:hover { background: #f8f8f8; }
+    </style>
+</head>
+<body>
+
+<h1>医护培训平台 — 全局 ER 图</h1>
+<div class="subtitle">Chen 记法 · 16 实体 · 22 关系</div>
+
+<div class="canvas">
+
+    <!-- ==========================================
+         布局说明：
+         每组：圆形(pK) 在上 → 短线 → 方形(Ent) 在下
+         行Y坐标：第1行=30, 第2行=220, 第3行=420, 第4行=620, 第5行=820
+         列X坐标：按实体数量均匀分布
+         ========================================== -->
+
+    <!-- ===== SVG 折线层 ===== -->
+    <svg style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:1;pointer-events:none;" viewBox="0 0 1480 920">
+        <g stroke="#555" stroke-width="1.5" fill="none">
+
+            <!-- 第1行 实体 → 关系垂直线 -->
+            <!-- users → R管理 -->
+            <line x1="70" y1="80" x2="70" y2="115"/>
+            <!-- subs → R拥有 -->
+            <line x1="230" y1="80" x2="230" y2="115"/>
+            <!-- pay → R发起 -->
+            <line x1="390" y1="80" x2="390" y2="115"/>
+            <!-- cert → R获得 -->
+            <line x1="550" y1="80" x2="550" y2="115"/>
+            <!-- log → R记录 -->
+            <line x1="710" y1="80" x2="710" y2="115"/>
+            <!-- set → 无关系 -->
+
+            <!-- 第2行 -->
+            <!-- instr → R讲授 -->
+            <line x1="70" y1="270" x2="70" y2="305"/>
+            <!-- cat → R分类 -->
+            <line x1="230" y1="270" x2="230" y2="305"/>
+            <!-- tag → R标记 -->
+            <line x1="390" y1="270" x2="390" y2="305"/>
+            <!-- vtr → R关联(视频) -->
+            <line x1="550" y1="270" x2="550" y2="305"/>
+            <!-- vtr → R关联(标签) -->
+            <line x1="640" y1="250" x2="640" y2="305"/>
+            <!-- video → R属于 -->
+            <line x1="790" y1="270" x2="790" y2="305"/>
+            <!-- comm → R评论 -->
+            <line x1="950" y1="270" x2="950" y2="305"/>
+            <!-- rate → R评分 -->
+            <line x1="1110" y1="270" x2="1110" y2="305"/>
+            <!-- note → R笔记 -->
+            <line x1="1270" y1="270" x2="1270" y2="305"/>
+
+            <!-- 第3行 -->
+            <!-- watch → R观看 -->
+            <line x1="70" y1="470" x2="70" y2="505"/>
+            <!-- mat → R有资料 -->
+            <line x1="790" y1="470" x2="790" y2="505"/>
+
+            <!-- ===== 关系垂直线 → 实体 ===== -->
+            <!-- R管理 → payments -->
+            <line x1="32" y1="140" x2="32" y2="175"/>
+            <!-- R管理 → certificates -->
+            <line x1="108" y1="140" x2="108" y2="175"/>
+            <!-- R管理 → logs -->
+            <line x1="152" y1="140" x2="152" y2="175"/>
+            <!-- R拥有 → (subs已在正下方，跳过) -->
+
+            <!-- R发起 → (pay已在正下方) -->
+
+            <!-- R对应 → (pay已在正下方) -->
+
+            <!-- R获得 → (cert已在正下方) -->
+            <!-- R记录 → (log已在正下方) -->
+
+            <!-- R讲授 → (instr正下方) -->
+            <!-- R讲授 → video -->
+            <line x1="232" y1="355" x2="790" y2="305"/>
+            <!-- R讲授 基数标注点 -->
+            <text x="400" y="330" font-size="11" fill="#e74c3c" font-weight="800">N</text>
+            <text x="790" y="295" font-size="11" fill="#e74c3c" font-weight="800">1</text>
+
+            <!-- R分类 → video -->
+            <line x1="390" y1="355" x2="790" y2="305"/>
+            <text x="500" y="332" font-size="11" fill="#e74c3c" font-weight="800">N</text>
+            <text x="790" y="295" font-size="11" fill="#e74c3c" font-weight="800">1</text>
+
+            <!-- R标记 → vtr -->
+            <!-- tag在col2,vtr在col5,画斜线 -->
+            <line x1="390" y1="355" x2="550" y2="305"/>
+            <text x="420" y="335" font-size="11" fill="#e74c3c" font-weight="800">N</text>
+            <text x="550" y="295" font-size="11" fill="#e74c3c" font-weight="800">1</text>
+
+            <!-- R关联(标签→vtr) -->
+            <!-- 标签col2到vtr col5,更长的斜线 -->
+            <line x1="390" y1="305" x2="640" y2="355"/>
+            <text x="510" y="310" font-size="11" fill="#e74c3c" font-weight="800">N</text>
+            <text x="640" y="345" font-size="11" fill="#e74c3c" font-weight="800">1</text>
+
+            <!-- R关联(视频→vtr) -->
+            <line x1="790" y1="355" x2="550" y2="305"/>
+            <text x="600" y="332" font-size="11" fill="#e74c3c" font-weight="800">1</text>
+            <text x="550" y="295" font-size="11" fill="#e74c3c" font-weight="800">N</text>
+
+            <!-- R属于 → video -->
+
+            <!-- R评论 → video -->
+            <line x1="950" y1="355" x2="790" y2="305"/>
+            <text x="870" y="332" font-size="11" fill="#e74c3c" font-weight="800">N</text>
+            <text x="790" y="295" font-size="11" fill="#e74c3c" font-weight="800">1</text>
+
+            <!-- R评分 → video -->
+            <line x1="1110" y1="355" x2="790" y2="305"/>
+            <text x="950" y="332" font-size="11" fill="#e74c3c" font-weight="800">N</text>
+            <text x="790" y="295" font-size="11" fill="#e74c3c" font-weight="800">1</text>
+
+            <!-- R笔记 → video -->
+            <line x1="1270" y1="355" x2="790" y2="305"/>
+            <text x="1030" y="332" font-size="11" fill="#e74c3c" font-weight="800">N</text>
+            <text x="790" y="295" font-size="11" fill="#e74c3c" font-weight="800">1</text>
+
+            <!-- R观看 → watch -->
+
+            <!-- R观看 → video (折线) -->
+            <path d="M 70 555 L 70 580 Q 70 660 430 660 Q 790 660 790 355" stroke-dasharray="5,4"/>
+            <text x="380" y="658" font-size="11" fill="#e74c3c" font-weight="800">1</text>
+            <text x="790" y="345" font-size="11" fill="#e74c3c" font-weight="800">N</text>
+
+            <!-- R有资料 → video -->
+            <line x1="790" y1="555" x2="790" y2="355"/>
+            <text x="798" y="460" font-size="11" fill="#e74c3c" font-weight="800">1</text>
+            <text x="798" y="476" font-size="11" fill="#e74c3c" font-weight="800">N</text>
+
+            <!-- R有资料 → materials -->
+            <line x1="790" y1="555" x2="790" y2="590"/>
+
+            <!-- R有资料 到 materials -->
+            <line x1="790" y1="555" x2="790" y2="590"/>
+
+            <!-- 分类自关联 -->
+            <path d="M 260 270 Q 300 240 300 270 Q 300 300 260 270" stroke-dasharray="4,3"/>
+
+            <!-- 评论自关联 -->
+            <path d="M 1020 270 Q 1060 240 1060 270 Q 1060 300 1020 270" stroke-dasharray="4,3"/>
+
+        </g>
+    </svg>
+
+    <!-- ==========================================
+         第 1 行：用户模块 (Y = PK:30→PK_bottom:80, ent:112→154)
+         列 X：均匀分布，间距 160px
+         ========================================== -->
+
+    <!-- ===== users ===== -->
+    <div class="pk"   style="left:45px;top:30px;">用户ID<small style="font-weight:400;font-size:7px;color:#777">PK</small></div>
+    <div class="ent"  style="left:25px;top:112px;">用户<small style="font-weight:400;font-size:9px"><br>User</small></div>
+
+    <!-- ===== subscriptions ===== -->
+    <div class="pk"   style="left:205px;top:30px;">订阅ID<small style="font-weight:400;font-size:7px;color:#777">PK</small></div>
+    <div class="ent"  style="left:185px;top:112px;">订阅<small style="font-weight:400;font-size:9px"><br>Subscription</small></div>
+
+    <!-- ===== payments ===== -->
+    <div class="pk"   style="left:365px;top:30px;">支付ID<small style="font-weight:400;font-size:7px;color:#777">PK</small></div>
+    <div class="ent"  style="left:345px;top:112px;">支付<small style="font-weight:400;font-size:9px"><br>Payment</small></div>
+
+    <!-- ===== certificates ===== -->
+    <div class="pk"   style="left:525px;top:30px;">证书ID<small style="font-weight:400;font-size:7px;color:#777">PK</small></div>
+    <div class="ent"  style="left:505px;top:112px;">证书<small style="font-weight:400;font-size:9px"><br>Certificate</small></div>
+
+    <!-- ===== operation_logs ===== -->
+    <div class="pk"   style="left:685px;top:30px;">日志ID<small style="font-weight:400;font-size:7px;color:#777">PK</small></div>
+    <div class="ent"  style="left:665px;top:112px;">操作日志<small style="font-weight:400;font-size:9px"><br>OpLog</small></div>
+
+    <!-- ===== settings ===== -->
+    <div class="pk"   style="left:845px;top:30px;">设置ID<small style="font-weight:400;font-size:7px;color:#777">PK</small></div>
+    <div class="ent"  style="left:825px;top:112px;">系统设置<small style="font-weight:400;font-size:9px"><br>Settings</small></div>
+
+    <!-- ===== 关系 (第1行用户模块) ===== -->
+
+    <!-- R管理: users → payments/certificates/logs -->
+    <div class="rel" style="left:5px;top:140px;">
+        <svg viewBox="0 0 68 50"><polygon points="34,0 68,25 34,50 0,25" fill="#fff" stroke="#333" stroke-width="2"/></svg>
+        <div class="txt">管理<small style="font-weight:400;font-size:7px"><br>manage</small></div>
+    </div>
+    <!-- 基数 -->
+    <div class="card" style="left:64px;top:78px;">1</div>
+    <div class="card" style="left:26px;top:148px;">N</div>
+
+    <!-- R拥有: users → subscriptions -->
+    <div class="rel" style="left:165px;top:140px;">
+        <svg viewBox="0 0 68 50"><polygon points="34,0 68,25 34,50 0,25" fill="#fff" stroke="#333" stroke-width="2"/></svg>
+        <div class="txt">拥有<small style="font-weight:400;font-size:7px"><br>has</small></div>
+    </div>
+    <div class="card" style="left:224px;top:78px;">1</div>
+    <div class="card" style="left:186px;top:148px;">N</div>
+
+    <!-- R发起: users → payments -->
+    <div class="rel" style="left:325px;top:140px;">
+        <svg viewBox="0 0 68 50"><polygon points="34,0 68,25 34,50 0,25" fill="#fff" stroke="#333" stroke-width="2"/></svg>
+        <div class="txt">发起<small style="font-weight:400;font-size:7px"><br>initiates</small></div>
+    </div>
+    <div class="card" style="left:384px;top:78px;">1</div>
+    <div class="card" style="left:346px;top:148px;">N</div>
+
+    <!-- R对应: subscriptions → payments -->
+    <div class="rel" style="left:485px;top:140px;">
+        <svg viewBox="0 0 68 50"><polygon points="34,0 68,25 34,50 0,25" fill="#fff" stroke="#333" stroke-width="2"/></svg>
+        <div class="txt">对应<small style="font-weight:400;font-size:7px"><br>matches</small></div>
+    </div>
+    <div class="card" style="left:544px;top:78px;">1</div>
+    <div class="card" style="left:506px;top:148px;">N</div>
+
+    <!-- R获得: users → certificates -->
+    <div class="rel" style="left:605px;top:140px;">
+        <svg viewBox="0 0 68 50"><polygon points="34,0 68,25 34,50 0,25" fill="#fff" stroke="#333" stroke-width="2"/></svg>
+        <div class="txt">获得<small style="font-weight:400;font-size:7px"><br>earns</small></div>
+    </div>
+    <div class="card" style="left:664px;top:78px;">1</div>
+    <div class="card" style="left:626px;top:148px;">N</div>
+
+    <!-- R记录: users → operation_logs -->
+    <div class="rel" style="left:725px;top:140px;">
+        <svg viewBox="0 0 68 50"><polygon points="34,0 68,25 34,50 0,25" fill="#fff" stroke="#333" stroke-width="2"/></svg>
+        <div class="txt">记录<small style="font-weight:400;font-size:7px"><br>logs</small></div>
+    </div>
+    <div class="card" style="left:784px;top:78px;">1</div>
+    <div class="card" style="left:746px;top:148px;">N</div>
+
+    <!-- ==========================================
+         第 2 行：视频模块 (Y = PK:220→ent:302)
+         ========================================== -->
+
+    <!-- ===== instructors ===== -->
+    <div class="pk"  style="left:45px;top:220px;">讲师ID<small style="font-weight:400;font-size:7px;color:#777">PK</small></div>
+    <div class="ent" style="left:25px;top:302px;">讲师<small style="font-weight:400;font-size:9px"><br>Instructor</small></div>
+
+    <!-- ===== video_categories ===== -->
+    <div class="pk"  style="left:205px;top:220px;">分类ID<small style="font-weight:400;font-size:7px;color:#777">PK</small></div>
+    <div class="ent" style="left:185px;top:302px;">视频分类<small style="font-weight:400;font-size:9px"><br>Category</small></div>
+
+    <!-- ===== video_tags ===== -->
+    <div class="pk"  style="left:365px;top:220px;">标签ID<small style="font-weight:400;font-size:7px;color:#777">PK</small></div>
+    <div class="ent" style="left:345px;top:302px;">视频标签<small style="font-weight:400;font-size:9px"><br>Tag</small></div>
+
+    <!-- ===== video_tag_relations ===== -->
+    <div class="pk"  style="left:520px;top:205px;font-size:8px;height:40px;width:44px;">视频ID<small style="font-weight:400;font-size:6px;color:#777"><br>PK,FK</small></div>
+    <div class="pk"  style="left:626px;top:220px;font-size:8px;height:40px;width:44px;">标签ID<small style="font-weight:400;font-size:6px;color:#777"><br>PK,FK</small></div>
+    <div class="ent" style="left:505px;top:302px;">标签关联<small style="font-weight:400;font-size:9px"><br>V-TagRel</small></div>
+
+    <!-- ===== videos ===== -->
+    <div class="pk"  style="left:765px;top:220px;">视频ID<small style="font-weight:400;font-size:7px;color:#777">PK</small></div>
+    <div class="ent" style="left:745px;top:302px;">视频<small style="font-weight:400;font-size:9px"><br>Video</small></div>
+
+    <!-- ===== comments ===== -->
+    <div class="pk"  style="left:925px;top:220px;">评论ID<small style="font-weight:400;font-size:7px;color:#777">PK</small></div>
+    <div class="ent" style="left:905px;top:302px;">评论<small style="font-weight:400;font-size:9px"><br>Comment</small></div>
+
+    <!-- ===== ratings ===== -->
+    <div class="pk"  style="left:1085px;top:220px;">评分ID<small style="font-weight:400;font-size:7px;color:#777">PK</small></div>
+    <div class="ent" style="left:1065px;top:302px;">评分<small style="font-weight:400;font-size:9px"><br>Rating</small></div>
+
+    <!-- ===== notes ===== -->
+    <div class="pk"  style="left:1245px;top:220px;">笔记ID<small style="font-weight:400;font-size:7px;color:#777">PK</small></div>
+    <div class="ent" style="left:1225px;top:302px;">笔记<small style="font-weight:400;font-size:9px"><br>Note</small></div>
+
+    <!-- ===== 关系 (第2行视频模块) ===== -->
+
+    <!-- R讲授: instructors → videos -->
+    <div class="rel" style="left:5px;top:355px;">
+        <svg viewBox="0 0 68 50"><polygon points="34,0 68,25 34,50 0,25" fill="#fff" stroke="#333" stroke-width="2"/></svg>
+        <div class="txt">讲授<small style="font-weight:400;font-size:7px"><br>teaches</small></div>
+    </div>
+    <div class="card" style="left:64px;top:268px;">N</div>
+
+    <!-- R分类: categories → videos -->
+    <div class="rel" style="left:165px;top:355px;">
+        <svg viewBox="0 0 68 50"><polygon points="34,0 68,25 34,50 0,25" fill="#fff" stroke="#333" stroke-width="2"/></svg>
+        <div class="txt">分类<small style="font-weight:400;font-size:7px"><br>categorizes</small></div>
+    </div>
+    <div class="card" style="left:224px;top:268px;">N</div>
+
+    <!-- R标记: tags → vtr -->
+    <div class="rel" style="left:325px;top:355px;">
+        <svg viewBox="0 0 68 50"><polygon points="34,0 68,25 34,50 0,25" fill="#fff" stroke="#333" stroke-width="2"/></svg>
+        <div class="txt">标记<small style="font-weight:400;font-size:7px"><br>tags</small></div>
+    </div>
+    <div class="card" style="left:384px;top:268px;">N</div>
+
+    <!-- R关联: videos ↔ video_tag_relations -->
+    <div class="rel" style="left:505px;top:355px;">
+        <svg viewBox="0 0 68 50"><polygon points="34,0 68,25 34,50 0,25" fill="#fff" stroke="#333" stroke-width="2"/></svg>
+        <div class="txt">关联<small style="font-weight:400;font-size:7px"><br>linked</small></div>
+    </div>
+
+    <!-- R属于: 讲师/分类归属 -->
+    <div class="rel" style="left:745px;top:355px;">
+        <svg viewBox="0 0 68 50"><polygon points="34,0 68,25 34,50 0,25" fill="#fff" stroke="#333" stroke-width="2"/></svg>
+        <div class="txt">属于<small style="font-weight:400;font-size:7px"><br>belongs</small></div>
+    </div>
+
+    <!-- R评论: videos → comments -->
+    <div class="rel" style="left:905px;top:355px;">
+        <svg viewBox="0 0 68 50"><polygon points="34,0 68,25 34,50 0,25" fill="#fff" stroke="#333" stroke-width="2"/></svg>
+        <div class="txt">评论<small style="font-weight:400;font-size:7px"><br>commented</small></div>
+    </div>
+
+    <!-- R评分: videos → ratings -->
+    <div class="rel" style="left:1065px;top:355px;">
+        <svg viewBox="0 0 68 50"><polygon points="34,0 68,25 34,50 0,25" fill="#fff" stroke="#333" stroke-width="2"/></svg>
+        <div class="txt">评分<small style="font-weight:400;font-size:7px"><br>rated</small></div>
+    </div>
+
+    <!-- R笔记: videos → notes -->
+    <div class="rel" style="left:1225px;top:355px;">
+        <svg viewBox="0 0 68 50"><polygon points="34,0 68,25 34,50 0,25" fill="#fff" stroke="#333" stroke-width="2"/></svg>
+        <div class="txt">笔记<small style="font-weight:400;font-size:7px"><br>noted</small></div>
+    </div>
+
+    <!-- ==========================================
+         第 3 行：观看/资料 (Y = PK:420→ent:502)
+         ========================================== -->
+
+    <!-- ===== watch_history ===== -->
+    <div class="pk"  style="left:45px;top:420px;">记录ID<small style="font-weight:400;font-size:7px;color:#777">PK</small></div>
+    <div class="ent" style="left:25px;top:502px;">观看记录<small style="font-weight:400;font-size:9px"><br>WatchHistory</small></div>
+
+    <!-- ===== materials ===== -->
+    <div class="pk"  style="left:765px;top:420px;">资料ID<small style="font-weight:400;font-size:7px;color:#777">PK</small></div>
+    <div class="ent" style="left:745px;top:502px;">学习资料<small style="font-weight:400;font-size:9px"><br>Material</small></div>
+
+    <!-- ===== 关系 (第3行) ===== -->
+
+    <!-- R观看: users → watch_history → videos -->
+    <div class="rel" style="left:5px;top:555px;">
+        <svg viewBox="0 0 68 50"><polygon points="34,0 68,25 34,50 0,25" fill="#fff" stroke="#333" stroke-width="2"/></svg>
+        <div class="txt">观看<small style="font-weight:400;font-size:7px"><br>watches</small></div>
+    </div>
+    <div class="card" style="left:64px;top:468px;">1</div>
+    <div class="card" style="left:26px;top:563px;">N</div>
+
+    <!-- R有资料: videos → materials -->
+    <div class="rel" style="left:745px;top:555px;">
+        <svg viewBox="0 0 68 50"><polygon points="34,0 68,25 34,50 0,25" fill="#fff" stroke="#333" stroke-width="2"/></svg>
+        <div class="txt">有资料<small style="font-weight:400;font-size:7px"><br>has</small></div>
+    </div>
+    <div class="card" style="left:764px;top:468px;">1</div>
+    <div class="card" style="left:766px;top:563px;">N</div>
+
+    <!-- ==========================================
+         自关联标注 (在SVG层用虚线画，这里放标签)
+         ========================================== -->
+    <div style="position:absolute;left:256px;top:233px;font-size:8px;color:#888;font-style:italic;z-index:5;">自关联</div>
+    <div style="position:absolute;left:1056px;top:233px;font-size:8px;color:#888;font-style:italic;z-index:5;">自关联</div>
+
+</div>
+
+<!-- 图例 -->
+<div class="legend">
+    <div class="leg-item"><div class="leg-ent"></div> 实体 Entity</div>
+    <div class="leg-item"><div class="leg-pk"></div> 主键 Primary Key</div>
+    <div class="leg-item"><div class="leg-rel"></div> 关系 Relationship</div>
+    <div class="leg-item"><span style="color:#e74c3c;font-weight:800">1</span> = 一方</div>
+    <div class="leg-item"><span style="color:#e74c3c;font-weight:800">N</span> = 多方</div>
+    <div class="leg-item"><span style="color:#999">— —</span> = 自关联</div>
+</div>
+
+</body>
+</html>

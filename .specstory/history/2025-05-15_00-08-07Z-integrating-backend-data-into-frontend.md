@@ -2,7 +2,7 @@
 
 # 2025-05-15 00:08:07Z
 
-<!-- cursoride Session 7edd55cc-fa3b-48ea-b2f8-7d463031274d (2025-05-15 00:08:07Z) -->
+<!-- Cursor IDE Session 7edd55cc-fa3b-48ea-b2f8-7d463031274d (2025-05-15 00:08:07Z) -->
 
 _**User (2025-05-15 00:08:04Z)**_
 

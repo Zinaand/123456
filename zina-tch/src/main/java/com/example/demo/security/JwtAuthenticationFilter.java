@@ -1,5 +1,8 @@
 package com.example.demo.security;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.example.demo.pojo.Users;
+import com.example.demo.service.UsersService;
 import com.example.demo.utils.JwtUtil;
 import io.jsonwebtoken.Claims;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +31,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Autowired
     private JwtUtil jwtUtil;
 
+    @Autowired
+    private UsersService usersService;
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) 
             throws ServletException, IOException {
@@ -44,12 +50,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String username = (String) claims.get("username");
                 String role = (String) claims.get("role");
 
+                // 检查用户状态 - 确保禁用用户无法使用token访问系统
+                Users user = usersService.getById(userId);
+                if (user == null || !"active".equals(user.getStatus())) {
+                    // 用户不存在或已禁用，清除认证信息
+                    SecurityContextHolder.clearContext();
+                    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    response.setContentType("application/json;charset=UTF-8");
+                    response.getWriter().write("{\"code\":403,\"message\":\"账号已被禁用，请联系管理员\"}");
+                    return;
+                }
+
                 // 创建授权列表
                 List<SimpleGrantedAuthority> authorities = new ArrayList<>();
                 authorities.add(new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()));
 
                 // 创建认证信息
-                UsernamePasswordAuthenticationToken authentication = 
+                UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(username, null, authorities);
 
                 // 设置认证信息到安全上下文

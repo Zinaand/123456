@@ -1,0 +1,187 @@
+```mermaid
+erDiagram
+    %% =============================================
+    %% 用户模块
+    %% =============================================
+
+    USER {
+        int id PK "用户ID"
+        varchar member_number UQ "会员编号"
+        varchar name "姓名"
+        varchar phone UQ "手机号"
+        varchar email UQ "邮箱"
+        varchar password "密码"
+        varchar role "角色"
+        varchar membership_type "会员类型"
+        date membership_start_date "会员开始"
+        date membership_expire_date "会员到期"
+        timestamp created_at "创建时间"
+        timestamp updated_at "更新时间"
+    }
+
+    SUBSCRIPTION {
+        int id PK "订阅ID"
+        int user_id FK "用户ID"
+        varchar plan_type "订阅类型"
+        date start_date "开始日期"
+        date end_date "结束日期"
+        varchar status "状态"
+        bool auto_renew "自动续费"
+    }
+
+    PAYMENT {
+        int id PK "支付ID"
+        int user_id FK "用户ID"
+        int subscription_id FK "订阅ID(可NULL)"
+        decimal amount "支付金额"
+        varchar payment_method "支付方式"
+        varchar transaction_id "交易ID"
+        varchar status "支付状态"
+        datetime payment_date "支付时间"
+    }
+
+    CERTIFICATE {
+        int id PK "证书ID"
+        int user_id FK "用户ID"
+        varchar title "证书标题"
+        text description "证书描述"
+        date issue_date "颁发日期"
+        date expiry_date "过期日期"
+        varchar certificate_url "证书URL"
+    }
+
+    OPERATION_LOG {
+        int id PK "日志ID"
+        int user_id FK "用户ID(可NULL)"
+        varchar action "操作类型"
+        varchar target_type "目标类型"
+        int target_id "目标ID"
+        varchar ip_address "IP地址"
+        timestamp created_at "操作时间"
+    }
+
+    SETTING {
+        int id PK "设置ID"
+        varchar setting_key UQ "设置键"
+        text setting_value "设置值"
+        text description "描述"
+    }
+
+    %% =============================================
+    %% 视频模块
+    %% =============================================
+
+    INSTRUCTOR {
+        int id PK "讲师ID"
+        varchar name "姓名"
+        varchar title "职称"
+        varchar organization "所属机构"
+        text bio "个人简介"
+        varchar avatar "头像"
+    }
+
+    VIDEO_CATEGORY {
+        int id PK "分类ID"
+        varchar name "分类名称"
+        text description "分类描述"
+        int parent_id FK "父分类ID(自关联)"
+    }
+
+    VIDEO {
+        int id PK "视频ID"
+        varchar title "视频标题"
+        text description "视频描述"
+        int category_id FK "分类ID"
+        int instructor_id FK "讲师ID"
+        int duration "时长(秒)"
+        varchar video_url "视频URL"
+        varchar thumbnail_url "缩略图URL"
+        varchar access_type "访问类型"
+        int views "观看次数"
+        varchar status "状态"
+        datetime upload_date "上传时间"
+    }
+
+    VIDEO_TAG {
+        int id PK "标签ID"
+        varchar name UQ "标签名称"
+    }
+
+    VIDEO_TAG_RELATION {
+        int video_id PK "视频ID"
+        int tag_id PK "标签ID"
+    }
+
+    COMMENT {
+        int id PK "评论ID"
+        int user_id FK "用户ID"
+        int video_id FK "视频ID"
+        int parent_id FK "父评论ID(自关联)"
+        text content "评论内容"
+        varchar status "状态"
+        datetime created_at "评论时间"
+    }
+
+    RATING {
+        int id PK "评分ID"
+        int user_id FK "用户ID"
+        int video_id FK "视频ID"
+        tinyint score "评分(1-5)"
+    }
+
+    MATERIAL {
+        int id PK "资料ID"
+        int video_id FK "视频ID"
+        varchar name "资料名称"
+        text description "资料描述"
+        varchar file_url "文件URL"
+        varchar file_type "文件类型"
+        bigint file_size "文件大小"
+        varchar access_type "访问类型"
+        int download_count "下载次数"
+    }
+
+    NOTE {
+        int id PK "笔记ID"
+        int user_id FK "用户ID"
+        int video_id FK "视频ID"
+        text content "笔记内容"
+        datetime created_at "创建时间"
+    }
+
+    WATCH_HISTORY {
+        int id PK "记录ID"
+        int user_id FK "用户ID"
+        int video_id FK "视频ID"
+        int progress "观看进度(秒)"
+        bool completed "是否完成"
+        datetime last_watched "最后观看时间"
+    }
+
+    %% =============================================
+    %% 关系连线
+    %% =============================================
+
+    USER ||--o{ SUBSCRIPTION : "拥有"
+    USER ||--o{ PAYMENT : "发起"
+    SUBSCRIPTION ||--o{ PAYMENT : "对应"
+    USER ||--o{ CERTIFICATE : "获得"
+    USER ||--o{ OPERATION_LOG : "记录"
+    USER ||--o{ COMMENT : "发表"
+    USER ||--o{ RATING : "评分"
+    USER ||--o{ NOTE : "笔记"
+    USER ||--o{ WATCH_HISTORY : "观看"
+
+    INSTRUCTOR ||--o{ VIDEO : "讲授"
+    VIDEO_CATEGORY ||--o{ VIDEO : "包含"
+    VIDEO_CATEGORY ||--o| VIDEO_CATEGORY : "子分类"
+    VIDEO ||--o{ VIDEO_TAG_RELATION : "标签"
+    VIDEO_TAG ||--o{ VIDEO_TAG_RELATION : "标记"
+    VIDEO ||--o{ COMMENT : "评论"
+    COMMENT ||--o| COMMENT : "回复"
+    VIDEO ||--o{ RATING : "评分"
+    VIDEO ||--o{ MATERIAL : "资料"
+    VIDEO ||--o{ NOTE : "笔记"
+    VIDEO ||--o{ WATCH_HISTORY : "记录"
+```
+

@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>医护培训平台 ER 图</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+            background: #f5f6fa;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 40px;
+            border-radius: 16px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+        }
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .diagram-card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            margin-bottom: 30px;
+        }
+        .diagram-card h2 {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .mermaid {
+            display: flex;
+            justify-content: center;
+            overflow-x: auto;
+        }
+        .legend {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            color: #666;
+        }
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+        }
+        .modules {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .module-badge {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            font-size: 13px;
+        }
+        .module-badge .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+        .stats {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 20px;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #667eea;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #888;
+            margin-top: 4px;
+        }
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            .diagram-card {
+                box-shadow: none;
+                page-break-after: always;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>医护培训平台 — 全局 ER 图</h1>
+            <p>Chen 记法 · 16 实体 · 21 关系</p>
+        </div>
+
+        <div class="diagram-card">
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-value">16</div>
+                    <div class="stat-label">数据表</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">21</div>
+                    <div class="stat-label">关系连线</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">5</div>
+                    <div class="stat-label">功能模块</div>
+                </div>
+            </div>
+
+            <div class="modules">
+                <div class="module-badge">
+                    <span class="dot" style="background: #e3f2fd;"></span>
+                    <span><strong>用户管理</strong> — users</span>
+                </div>
+                <div class="module-badge">
+                    <span class="dot" style="background: #e8f5e9;"></span>
+                    <span><strong>会员管理</strong> — subscriptions, payments</span>
+                </div>
+                <div class="module-badge">
+                    <span class="dot" style="background: #fff3e0;"></span>
+                    <span><strong>内容管理</strong> — videos, instructors, categories, tags</span>
+                </div>
+                <div class="module-badge">
+                    <span class="dot" style="background: #f3e5f5;"></span>
+                    <span><strong>用户互动</strong> — comments, ratings, notes</span>
+                </div>
+                <div class="module-badge">
+                    <span class="dot" style="background: #fafafa;"></span>
+                    <span><strong>系统管理</strong> — certificates, logs, settings</span>
+                </div>
+            </div>
+
+            <div class="mermaid">
+erDiagram
+    %% ================================================================
+    %% 用户管理模块
+    %% ================================================================
+    USERS {
+        int id PK "用户ID"
+        varchar member_number UQ "会员编号"
+        varchar name "姓名"
+        varchar id_number UQ "身份证号"
+        varchar phone UQ "手机号"
+        varchar email UQ "邮箱"
+        varchar password "密码"
+        varchar avatar "头像"
+        enum status "状态"
+        enum role "角色"
+        datetime register_date "注册时间"
+        datetime last_login "最后登录"
+        varchar membership_type "会员类型"
+        datetime membership_start_date "会员开始"
+        datetime membership_expire_date "会员到期"
+    }
+
+    %% ================================================================
+    %% 会员管理模块
+    %% ================================================================
+    SUBSCRIPTIONS {
+        int id PK "订阅ID"
+        int user_id FK "用户ID"
+        enum plan_type "订阅类型"
+        datetime start_date "开始日期"
+        datetime end_date "结束日期"
+        enum status "状态"
+        tinyint auto_renew "自动续费"
+    }
+
+    PAYMENTS {
+        int id PK "支付ID"
+        int user_id FK "用户ID"
+        int subscription_id FK "订阅ID"
+        decimal amount "金额"
+        enum payment_method "支付方式"
+        varchar transaction_id "交易ID"
+        enum status "支付状态"
+        datetime payment_date "支付时间"
+    }
+
+    %% ================================================================
+    %% 内容管理模块
+    %% ================================================================
+    INSTRUCTORS {
+        int id PK "讲师ID"
+        varchar name "姓名"
+        varchar title "职称"
+        varchar organization "所属机构"
+        text bio "个人简介"
+        varchar avatar "头像"
+    }
+
+    VIDEO_CATEGORIES {
+        int id PK "分类ID"
+        varchar name "分类名称"
+        text description "描述"
+        int parent_id FK "父分类ID"
+        int display_order "显示顺序"
+    }
+
+    VIDEO_TAGS {
+        int id PK "标签ID"
+        varchar name UQ "标签名称"
+    }
+
+    VIDEO_TAG_RELATIONS {
+        int video_id PK FK "视频ID"
+        int tag_id PK FK "标签ID"
+    }
+
+    VIDEOS {
+        int id PK "视频ID"
+        varchar title "标题"
+        text description "描述"
+        int category_id FK "分类ID"
+        int instructor_id FK "讲师ID"
+        int duration "时长"
+        varchar video_url "视频URL"
+        varchar thumbnail_url "缩略图"
+        enum access_type "访问类型"
+        int views "观看次数"
+        enum status "状态"
+        datetime upload_date "上传时间"
+    }
+
+    MATERIALS {
+        int id PK "资料ID"
+        int video_id FK "视频ID"
+        varchar name "资料名称"
+        text description "描述"
+        varchar file_url "文件URL"
+        varchar file_type "文件类型"
+        int file_size "文件大小"
+        enum access_type "访问类型"
+        int download_count "下载次数"
+    }
+
+    %% ================================================================
+    %% 用户互动模块
+    %% ================================================================
+    COMMENTS {
+        int id PK "评论ID"
+        int user_id FK "用户ID"
+        int video_id FK "视频ID"
+        int parent_id FK "父评论ID"
+        text content "评论内容"
+        enum status "状态"
+    }
+
+    RATINGS {
+        int id PK "评分ID"
+        int user_id FK "用户ID"
+        int video_id FK "视频ID"
+        tinyint score "评分1-5"
+    }
+
+    NOTES {
+        int id PK "笔记ID"
+        int user_id FK "用户ID"
+        int video_id FK "视频ID"
+        text content "笔记内容"
+    }
+
+    WATCH_HISTORY {
+        int id PK "记录ID"
+        int user_id FK "用户ID"
+        int video_id FK "视频ID"
+        int progress "观看进度"
+        tinyint completed "是否完成"
+        datetime last_watched "最后观看"
+    }
+
+    %% ================================================================
+    %% 系统管理模块
+    %% ================================================================
+    CERTIFICATES {
+        int id PK "证书ID"
+        int user_id FK "用户ID"
+        varchar title "证书标题"
+        text description "描述"
+        datetime issue_date "颁发日期"
+        datetime expiry_date "过期日期"
+        varchar certificate_url "证书URL"
+    }
+
+    OPERATION_LOGS {
+        int id PK "日志ID"
+        int user_id FK "用户ID"
+        varchar action "操作类型"
+        varchar target_type "目标类型"
+        int target_id "目标ID"
+        text details "详情"
+        varchar ip_address "IP"
+        text user_agent "用户代理"
+    }
+
+    SETTINGS {
+        int id PK "设置ID"
+        varchar setting_key UQ "设置键"
+        text setting_value "设置值"
+        varchar description "描述"
+    }
+
+    %% ================================================================
+    %% 关系连线
+    %% ================================================================
+
+    %% 用户 → 会员管理
+    USERS ||--o{ SUBSCRIPTIONS : "拥有订阅"
+    USERS ||--o{ PAYMENTS : "发起支付"
+    SUBSCRIPTIONS ||--o{ PAYMENTS : "关联支付"
+
+    %% 用户 → 内容管理
+    USERS ||--o{ CERTIFICATES : "获得证书"
+
+    %% 用户 → 互动
+    USERS ||--o{ COMMENTS : "发表评论"
+    USERS ||--o{ RATINGS : "评分视频"
+    USERS ||--o{ NOTES : "记录笔记"
+    USERS ||--o{ WATCH_HISTORY : "观看记录"
+
+    %% 视频 → 核心
+    INSTRUCTORS ||--o{ VIDEOS : "讲授"
+    VIDEO_CATEGORIES ||--o{ VIDEOS : "分类"
+    VIDEO_CATEGORIES ||--o| VIDEO_CATEGORIES : "子分类"
+    VIDEOS ||--o{ VIDEO_TAG_RELATIONS : "打标签"
+    VIDEO_TAGS ||--o{ VIDEO_TAG_RELATIONS : "被标记"
+
+    %% 视频 → 互动
+    VIDEOS ||--o{ COMMENTS : "被评论"
+    COMMENTS ||--o| COMMENTS : "被回复"
+    VIDEOS ||--o{ RATINGS : "被评分"
+    VIDEOS ||--o{ MATERIALS : "关联资料"
+    VIDEOS ||--o{ NOTES : "被笔记"
+    VIDEOS ||--o{ WATCH_HISTORY : "被观看"
+
+    %% 用户 → 日志
+    USERS ||--o{ OPERATION_LOGS : "操作日志"
+            </div>
+
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #667eea;"></div>
+                    <span>PK = 主键 Primary Key</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #764ba2;"></div>
+                    <span>FK = 外键 Foreign Key</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #43a047;"></div>
+                    <span>UQ = 唯一约束 Unique</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ffa726;"></div>
+                    <span>1:N = 一对多关系</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #66bb6a;"></div>
+                    <span>1:1 = 一对一关系</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #42a5f5;"></div>
+                    <span>自关联 = 同一表外键指向自身</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'base',
+            themeVariables: {
+                primaryColor: '#e3f2fd',
+                primaryTextColor: '#1a237e',
+                primaryBorderColor: '#1976d2',
+                lineColor: '#42a5f5',
+                secondaryColor: '#f3e5f5',
+                tertiaryColor: '#fff3e0',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif',
+                fontSize: '12px'
+            },
+            er: {
+                diagramPadding: 20,
+                entityPadding: 15,
+                useMaxWidth: true
+            }
+        });
+    </script>
+</body>
+</html>

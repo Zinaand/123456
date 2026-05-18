@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>医护培训平台 ER 图</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 30px 20px;
+        }
+
+        h1 {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 6px;
+        }
+
+        .subtitle {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 24px;
+        }
+
+        /* 画布 */
+        .canvas {
+            position: relative;
+            width: 820px;
+            height: 680px;
+        }
+
+        /* SVG 连线 */
+        .svg {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 1;
+        }
+
+        /* 实体 - 方形 */
+        .entity {
+            position: absolute;
+            width: 100px;
+            height: 52px;
+            border: 2.5px solid #333;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: #333;
+            z-index: 2;
+            cursor: pointer;
+            transition: background 0.15s;
+            text-align: center;
+            line-height: 1.2;
+            background: #fff;
+        }
+
+        .entity:hover { background: #f0f4ff; }
+
+        /* 主键 - 圆形 */
+        .pk {
+            position: absolute;
+            width: 56px;
+            height: 56px;
+            border: 2px solid #555;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 700;
+            color: #555;
+            z-index: 2;
+            background: #fff;
+            cursor: pointer;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        .pk:hover { background: #fff3e0; }
+
+        /* 关系 - 菱形 */
+        .rel {
+            position: absolute;
+            width: 80px;
+            height: 60px;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 600;
+            color: #333;
+            z-index: 2;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        /* 菱形用 SVG 实现 */
+        .rel svg {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+        }
+
+        /* 基数标注 */
+        .cardinality {
+            position: absolute;
+            font-size: 12px;
+            font-weight: 700;
+            color: #e74c3c;
+            z-index: 3;
+        }
+
+        /* 图例 */
+        .legend {
+            margin-top: 24px;
+            display: flex;
+            gap: 24px;
+            align-items: center;
+            font-size: 12px;
+            color: #555;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .leg-entity {
+            width: 22px;
+            height: 14px;
+            border: 2px solid #333;
+            border-radius: 2px;
+            background: #fff;
+        }
+
+        .leg-pk {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #555;
+            border-radius: 50%;
+            background: #fff;
+        }
+
+        .leg-rel {
+            width: 14px;
+            height: 14px;
+            border: 2px solid #333;
+            background: #fff;
+            transform: rotate(45deg);
+        }
+    </style>
+</head>
+<body>
+
+<h1>医护培训平台 - 全局 ER 图</h1>
+<div class="subtitle">Chen 记法 · 5 实体 · 7 关系</div>
+
+<div class="canvas">
+
+    <!-- ========== SVG 连线层 ========== -->
+    <svg class="svg" viewBox="0 0 820 680">
+
+        <!-- 实线关系 (1:N) -->
+        <g stroke="#333" stroke-width="1.8" fill="none">
+
+            <!-- 用户 → 订阅 (1:N) -->
+            <line x1="260" y1="145" x2="260" y2="230"/>
+            <!-- 用户 → 支付 (1:N) -->
+            <line x1="320" y1="158" x2="320" y2="340"/>
+            <!-- 订阅 → 支付 (1:N) -->
+            <line x1="200" y1="280" x2="320" y2="340"/>
+            <!-- 用户 → 观看记录 (1:N) -->
+            <line x1="260" y1="158" x2="520" y2="420"/>
+            <!-- 观看记录 → 视频 (N:1) -->
+            <line x1="590" y1="400" x2="590" y2="300"/>
+
+            <!-- 用户id → 用户 -->
+            <line x1="145" y1="95" x2="170" y2="120"/>
+            <!-- 订阅id → 订阅 -->
+            <line x1="215" y1="248" x2="215" y2="280"/>
+            <!-- 支付id → 支付 -->
+            <line x1="290" y1="358" x2="290" y2="390"/>
+            <!-- 记录id → 观看记录 -->
+            <line x1="490" y1="438" x2="470" y2="438"/>
+            <!-- 视频id → 视频 -->
+            <line x1="645" y1="295" x2="620" y2="280"/>
+        </g>
+
+        <!-- 标注 -->
+        <g font-family="Microsoft YaHei" font-size="12" fill="#e74c3c" font-weight="700">
+            <!-- 基数 -->
+            <text x="254" y="195">1</text>
+            <text x="266" y="195">N</text>
+            <text x="314" y="260">1</text>
+            <text x="326" y="260">N</text>
+            <text x="314" y="395">1</text>
+            <text x="326" y="395">N</text>
+            <text x="514" y="296">1</text>
+            <text x="526" y="296">N</text>
+            <text x="514" y="475">N</text>
+            <text x="526" y="475">1</text>
+        </g>
+
+        <!-- 关系连线 - 菱形边框 (单独一层用于填充) -->
+        <g stroke="#333" stroke-width="2" fill="#fff">
+            <!-- R1: 拥有 -->
+            <polygon points="260,200 300,230 260,260 220,230"/>
+            <!-- R2: 发起 -->
+            <polygon points="320,295 360,325 320,355 280,325"/>
+            <!-- R3: 对应 -->
+            <polygon points="240,295 280,325 240,355 200,325"/>
+            <!-- R4: 产生 -->
+            <polygon points="520,380 560,410 520,440 480,410"/>
+            <!-- R5: 包含(记录→视频) -->
+            <polygon points="590,345 630,375 590,405 550,375"/>
+        </g>
+    </svg>
+
+    <!-- ========== 主键 (圆形) ========== -->
+    <div class="pk" style="left:117px;top:67px;">用户id<br><small style="font-weight:400;font-size:9px;">UserId</small></div>
+    <div class="pk" style="left:187px;top:220px;">订阅id<br><small style="font-weight:400;font-size:9px;">SubscriptionId</small></div>
+    <div class="pk" style="left:262px;top:358px;">支付id<br><small style="font-weight:400;font-size:9px;">PaymentId</small></div>
+    <div class="pk" style="left:462px;top:410px;">记录id<br><small style="font-weight:400;font-size:9px;">RecordId</small></div>
+    <div class="pk" style="left:667px;top:267px;">视频id<br><small style="font-weight:400;font-size:9px;">VideoId</small></div>
+
+    <!-- ========== 实体 (方形) ========== -->
+    <div class="entity" style="left:210px;top:120px;">用户<br><small style="font-weight:400;font-size:10px;">User</small></div>
+    <div class="entity" style="left:160px;top:280px;">订阅<br><small style="font-weight:400;font-size:10px;">Subscription</small></div>
+    <div class="entity" style="left:280px;top:390px;">支付<br><small style="font-weight:400;font-size:10px;">Payment</small></div>
+    <div class="entity" style="left:470px;top:420px;">观看记录<br><small style="font-weight:400;font-size:10px;">WatchRecord</small></div>
+    <div class="entity" style="left:540px;top:240px;">视频<br><small style="font-weight:400;font-size:10px;">Video</small></div>
+
+    <!-- ========== 关系 (菱形+文字) ========== -->
+    <!-- R1: 拥有 -->
+    <div style="position:absolute;left:220px;top:200px;width:80px;height:60px;z-index:3;">
+        <svg viewBox="0 0 80 60" style="position:absolute;top:0;left:0;width:100%;height:100%;">
+            <polygon points="40,0 80,30 40,60 0,30" fill="#fff" stroke="#333" stroke-width="2"/>
+        </svg>
+        <div style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:#333;line-height:1.3;pointer-events:none;">
+            拥有<br><small style="font-weight:400">has</small>
+        </div>
+    </div>
+
+    <!-- R2: 发起 -->
+    <div style="position:absolute;left:280px;top:295px;width:80px;height:60px;z-index:3;">
+        <svg viewBox="0 0 80 60" style="position:absolute;top:0;left:0;width:100%;height:100%;">
+            <polygon points="40,0 80,30 40,60 0,30" fill="#fff" stroke="#333" stroke-width="2"/>
+        </svg>
+        <div style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:#333;line-height:1.3;pointer-events:none;">
+            发起<br><small style="font-weight:400">initiates</small>
+        </div>
+    </div>
+
+    <!-- R3: 对应 -->
+    <div style="position:absolute;left:200px;top:295px;width:80px;height:60px;z-index:3;">
+        <svg viewBox="0 0 80 60" style="position:absolute;top:0;left:0;width:100%;height:100%;">
+            <polygon points="40,0 80,30 40,60 0,30" fill="#fff" stroke="#333" stroke-width="2"/>
+        </svg>
+        <div style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:#333;line-height:1.3;pointer-events:none;">
+            对应<br><small style="font-weight:400">corresponds</small>
+        </div>
+    </div>
+
+    <!-- R4: 产生 -->
+    <div style="position:absolute;left:480px;top:380px;width:80px;height:60px;z-index:3;">
+        <svg viewBox="0 0 80 60" style="position:absolute;top:0;left:0;width:100%;height:100%;">
+            <polygon points="40,0 80,30 40,60 0,30" fill="#fff" stroke="#333" stroke-width="2"/>
+        </svg>
+        <div style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:#333;line-height:1.3;pointer-events:none;">
+            产生<br><small style="font-weight:400">generates</small>
+        </div>
+    </div>
+
+    <!-- R5: 包含 -->
+    <div style="position:absolute;left:550px;top:345px;width:80px;height:60px;z-index:3;">
+        <svg viewBox="0 0 80 60" style="position:absolute;top:0;left:0;width:100%;height:100%;">
+            <polygon points="40,0 80,30 40,60 0,30" fill="#fff" stroke="#333" stroke-width="2"/>
+        </svg>
+        <div style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:#333;line-height:1.3;pointer-events:none;">
+            包含<br><small style="font-weight:400">includes</small>
+        </div>
+    </div>
+
+</div>
+
+<!-- 图例 -->
+<div class="legend">
+    <div class="legend-item"><div class="leg-entity"></div> 方形 = 实体 (Entity)</div>
+    <div class="legend-item"><div class="leg-pk"></div> 圆形 = 主键 (Primary Key)</div>
+    <div class="legend-item"><div class="leg-rel"></div> 菱形 = 关系 (Relationship)</div>
+    <div class="legend-item" style="color:#e74c3c;font-weight:700;">1 = 一对一 &nbsp; N = 一对多</div>
+</div>
+
+</body>
+</html>
