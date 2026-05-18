@@ -80,6 +80,20 @@ export default function CourseDetailPage() {
   // 获取分类名称
   const categoryName = getCategoryNameById(video.categoryId);
 
+  // 处理视频 URL - 本地视频需要添加后端地址前缀
+  const getFullUrl = (url: string | undefined) => {
+    if (!url) return undefined;
+
+    // 如果是外部 URL（包含 http 或 https），直接返回
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+      return url;
+    }
+
+    // 如果是本地资源，返回完整的后端地址
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8090";
+    return `${apiUrl}${url}`;
+  };
+
   return (
     <div className="container py-8">
       <div className="max-w-5xl mx-auto">
@@ -88,7 +102,7 @@ export default function CourseDetailPage() {
           {video.videoUrl ? (
             <VideoPlayer
               videoUrl={video.videoUrl}
-              thumbnailUrl={video.thumbnailUrl && video.thumbnailUrl.startsWith('/uploads/') ? video.thumbnailUrl : `/uploads/thumbnails/${video.thumbnailUrl}`}
+              thumbnailUrl={video.thumbnailUrl}
               title={video.title}
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}

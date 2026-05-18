@@ -73,7 +73,19 @@ export default function FeaturedVideos() {
               <img
                 alt={video.title}
                 className="object-cover w-full h-full transition-transform group-hover:scale-105 duration-300"
-                src={video.thumbnailUrl || "/placeholder.svg?height=180&width=320"}
+                src={(() => {
+                  if (!video.thumbnailUrl) return "/placeholder.svg?height=180&width=320";
+                  // 已经是 /uploads/ 开头，直接使用
+                  if (video.thumbnailUrl.startsWith('/uploads/')) {
+                    return video.thumbnailUrl;
+                  }
+                  // 外部URL
+                  if (video.thumbnailUrl.startsWith('http://') || video.thumbnailUrl.startsWith('https://')) {
+                    return video.thumbnailUrl;
+                  }
+                  // 其他情况添加前缀
+                  return `/uploads/thumbnails/${video.thumbnailUrl}`;
+                })()}
               />
               <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
                 <div className="rounded-full bg-white/90 p-2">

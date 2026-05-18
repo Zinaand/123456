@@ -107,8 +107,20 @@ export default function CoursesPage() {
             <Link href={`/courses/${course.id}`} className="block">
               <div className="aspect-video relative bg-muted cursor-pointer group">
                 {course.thumbnailUrl && !imgError[course.id] ? (
-                  <img 
-                    src={course.thumbnailUrl.startsWith('/uploads/') ? course.thumbnailUrl : `/uploads/thumbnails/${course.thumbnailUrl}`}
+                  <img
+                    src={(() => {
+                      if (!course.thumbnailUrl) return "/placeholder.svg?height=180&width=320";
+                      // 已经是 /uploads/ 开头，直接使用
+                      if (course.thumbnailUrl.startsWith('/uploads/')) {
+                        return course.thumbnailUrl;
+                      }
+                      // 外部URL
+                      if (course.thumbnailUrl.startsWith('http://') || course.thumbnailUrl.startsWith('https://')) {
+                        return course.thumbnailUrl;
+                      }
+                      // 其他情况添加前缀
+                      return `/uploads/thumbnails/${course.thumbnailUrl}`;
+                    })()}
                     alt={course.title}
                     className="w-full h-full object-cover group-hover:brightness-90 transition"
                     onError={() => handleImageError(course.id)}

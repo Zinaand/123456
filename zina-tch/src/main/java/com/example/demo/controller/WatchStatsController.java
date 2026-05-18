@@ -8,17 +8,16 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @RestController
-@RequestMapping("/api/stats")
-public class drdController {
+@RequestMapping("/api/watch-stats")
+public class WatchStatsController {
 
-    private static final Logger logger = LoggerFactory.getLogger(drdController.class);
+    private static final Logger logger = LoggerFactory.getLogger(WatchStatsController.class);
 
     @Autowired
     private VideoHistoryService videoHistoryService;
@@ -36,8 +35,6 @@ public class drdController {
         }
     }
 
-
-
     @GetMapping("/video-play-time")
     public ResponseEntity<Map<Integer, Long>> getAllVideoPlayTime() {
         logger.info("接收到获取所有视频播放时间的请求");
@@ -50,7 +47,6 @@ public class drdController {
             throw e;
         }
     }
-
 
     @GetMapping("/user-videos")
     public ResponseEntity<Map<Integer, List<Integer>>> getAllUserWatchedVideos() {

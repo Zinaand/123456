@@ -48,6 +48,9 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
             .antMatchers("/**/auth/**", "/error").permitAll()
             .antMatchers("/api/videos/**").permitAll() // 允许公开访问视频相关API
             .antMatchers("/api/categories/**").permitAll() // 允许公开访问分类相关API
+            .antMatchers("/api/instructors/**").permitAll() // 允许公开访问讲师相关API
+            .antMatchers("/uploads/**").permitAll() // 允许公开访问上传的文件
+            .antMatchers("/videos/**").permitAll() // 允许公开访问视频文件（旧路径）
             .antMatchers("/api/payments/*/notify", "/api/payments/*/return").permitAll()
             .antMatchers("/api/payments/alipay", "/api/payments/wechat").permitAll() // 允许公开访问支付接口
             .antMatchers("/api/payments/*/status").permitAll() // 允许公开访问支付状态查询
@@ -67,9 +70,10 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
+        // 使用 allowedOriginPatterns 而不是 allowedOrigins，这样允许凭证时可以工作
         configuration.setAllowedOriginPatterns(Collections.singletonList("*"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin"));
+        configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setExposedHeaders(Arrays.asList("Authorization"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);

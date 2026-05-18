@@ -148,6 +148,15 @@ export default function VideoPage({ params }: { params: { id: string } }) {
     )
   }
 
+  // 处理视频 URL - 本地视频需要添加后端地址前缀
+  const getFullUrl = (url: string | undefined) => {
+    if (!url) return undefined;
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+      return url;
+    }
+    return `http://localhost:8090${url}`;
+  };
+
   return (
     <div className="container py-8">
       <div className="mb-4">
@@ -156,14 +165,14 @@ export default function VideoPage({ params }: { params: { id: string } }) {
           返回课程列表
         </Link>
       </div>
-      
+
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
           <div className="relative bg-black rounded-lg overflow-hidden">
             <video
               ref={videoRef}
               className="w-full aspect-video"
-              poster={videoData.thumbnailUrl || "/placeholder.svg?height=400&width=800"}
+              poster={getFullUrl(videoData.thumbnailUrl) || "/placeholder.svg?height=400&width=800"}
               onTimeUpdate={handleTimeUpdate}
               onLoadedMetadata={handleLoadedMetadata}
               onClick={() => {
@@ -177,7 +186,7 @@ export default function VideoPage({ params }: { params: { id: string } }) {
                 }
               }}
             >
-              <source src={videoData.videoUrl} type="video/mp4" />
+              <source src={getFullUrl(videoData.videoUrl)} type="video/mp4" />
               您的浏览器不支持视频播放。
             </video>
             

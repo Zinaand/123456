@@ -223,6 +223,30 @@ export const materialApi = {
 
 // 统计分析相关 API
 export const statsApi = {
+  // 获取完整统计数据
+  getFullStats: (topVideosLimit = 10) => 
+    api.get(`/api/stats/full?topVideosLimit=${topVideosLimit}`),
+  
+  // 获取总览统计
+  getOverview: () => 
+    api.get('/api/stats/overview'),
+  
+  // 获取每月会员注册趋势
+  getMonthlyRegistration: () => 
+    api.get('/api/stats/monthly-registration'),
+  
+  // 获取每月视频观看统计
+  getMonthlyViews: () => 
+    api.get('/api/stats/monthly-views'),
+  
+  // 获取视频类型分布
+  getCategoryDistribution: () => 
+    api.get('/api/stats/category-distribution'),
+  
+  // 获取热门视频排名
+  getTopVideos: (limit = 10) => 
+    api.get(`/api/stats/top-videos?limit=${limit}`),
+  
   // 获取所有用户的观看时间
   getAllUserWatchTime: () => 
     api.get('/api/stats/user-watch-time'),

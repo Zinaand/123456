@@ -48,12 +48,13 @@ public class VideosController {
     private final UserService userService;
     private final JwtUtil jwtUtil;
 
-    // 获取项目运行目录
-    private static final String UPLOAD_BASE_DIR = System.getProperty("user.dir") + "/uploads";
-    // 视频文件存储路径
-    private static final String VIDEO_UPLOAD_DIR = UPLOAD_BASE_DIR + "/videos/";
-    // 缩略图文件存储路径
-    private static final String THUMBNAIL_UPLOAD_DIR = UPLOAD_BASE_DIR + "/thumbnails/";
+    // 后端视频文件存储路径
+    private static final String BACKEND_BASE_DIR = System.getProperty("user.dir") + "/uploads";
+    private static final String VIDEO_UPLOAD_DIR = BACKEND_BASE_DIR + "/videos/";
+
+    // 前端 public 目录下的缩略图存储路径
+    private static final String FRONTEND_PUBLIC_DIR = "D:/Zina/在线课程项目/medical-training/public/uploads";
+    private static final String THUMBNAIL_UPLOAD_DIR = FRONTEND_PUBLIC_DIR + "/thumbnails/";
     
     /**
      * 获取视频列表（分页）
@@ -97,10 +98,15 @@ public class VideosController {
         log.info("获取视频列表，查询条件：{}", queryWrapper.getTargetSql());
         
         Page<Videos> videoPage = videosService.page(new Page<>(page, size), queryWrapper);
-        
+
+        // 转换所有视频的URL为HTTP可访问路径
+        for (Videos video : videoPage.getRecords()) {
+            convertVideoUrls(video);
+        }
+
         // 打印返回的结果数量，便于调试
         log.info("获取视频列表成功，共返回 {} 条记录", videoPage.getRecords().size());
-        
+
         return ApiResponse.success(videoPage);
     }
     
@@ -113,6 +119,8 @@ public class VideosController {
         if (video == null) {
             return ApiResponse.badRequest("视频不存在");
         }
+        // 转换视频URL为HTTP可访问路径
+        convertVideoUrls(video);
         // 公开视频直接返回
         if (!"internal".equals(video.getAccessType())) {
             return ApiResponse.success(video);
@@ -169,8 +177,9 @@ public class VideosController {
             // 处理视频文件上传
             if (videoFile != null && !videoFile.isEmpty()) {
                 String videoFileName = handleFileUpload(videoFile, VIDEO_UPLOAD_DIR);
-                video.setVideoUrl(VIDEO_UPLOAD_DIR + videoFileName);
-                
+                // 保存为HTTP可访问的路径
+                video.setVideoUrl("/uploads/videos/" + videoFileName);
+
                 // 如果未提供时长，尝试从视频文件获取
                 if (duration == null) {
                     try {
@@ -179,24 +188,26 @@ public class VideosController {
                         log.warn("无法从视频文件获取时长", e);
                     }
                 }
-                
+
                 // 如果未提供缩略图，尝试从视频生成
                 if (thumbnailFile == null || thumbnailFile.isEmpty()) {
                     try {
                         String thumbnailFileName = UUID.randomUUID().toString() + ".jpg";
                         File thumbnailFile1 = new File(THUMBNAIL_UPLOAD_DIR + thumbnailFileName);
                         VideoUtils.generateThumbnail(new File(VIDEO_UPLOAD_DIR + videoFileName), thumbnailFile1);
-                        video.setThumbnailUrl(THUMBNAIL_UPLOAD_DIR + thumbnailFileName);
+                        // 保存为HTTP可访问的路径
+                        video.setThumbnailUrl("/uploads/thumbnails/" + thumbnailFileName);
                     } catch (Exception e) {
                         log.warn("无法从视频生成缩略图", e);
                     }
                 }
             }
-            
+
             // 处理缩略图文件上传
             if (thumbnailFile != null && !thumbnailFile.isEmpty()) {
                 String thumbnailFileName = handleFileUpload(thumbnailFile, THUMBNAIL_UPLOAD_DIR);
-                video.setThumbnailUrl(THUMBNAIL_UPLOAD_DIR + thumbnailFileName);
+                // 保存为HTTP可访问的路径
+                video.setThumbnailUrl("/uploads/thumbnails/" + thumbnailFileName);
             }
             
             // 设置时长
@@ -253,15 +264,18 @@ public class VideosController {
                 // 如果之前有视频文件，删除
                 if (video.getVideoUrl() != null) {
                     try {
-                        Files.deleteIfExists(Paths.get(video.getVideoUrl()));
+                        // 从URL中提取文件名
+                        String oldFileName = video.getVideoUrl().substring(video.getVideoUrl().lastIndexOf("/") + 1);
+                        Files.deleteIfExists(Paths.get(VIDEO_UPLOAD_DIR + oldFileName));
                     } catch (Exception e) {
                         log.warn("删除旧视频文件失败", e);
                     }
                 }
-                
+
                 String videoFileName = handleFileUpload(videoFile, VIDEO_UPLOAD_DIR);
-                video.setVideoUrl(VIDEO_UPLOAD_DIR + videoFileName);
-                
+                // 保存为HTTP可访问的路径
+                video.setVideoUrl("/uploads/videos/" + videoFileName);
+
                 // 如果未提供时长，尝试从视频文件获取
                 if (duration == null) {
                     try {
@@ -271,20 +285,23 @@ public class VideosController {
                     }
                 }
             }
-            
+
             // 处理缩略图文件更新
             if (thumbnailFile != null && !thumbnailFile.isEmpty()) {
                 // 如果之前有缩略图文件，删除
                 if (video.getThumbnailUrl() != null) {
                     try {
-                        Files.deleteIfExists(Paths.get(video.getThumbnailUrl()));
+                        // 从URL中提取文件名
+                        String oldFileName = video.getThumbnailUrl().substring(video.getThumbnailUrl().lastIndexOf("/") + 1);
+                        Files.deleteIfExists(Paths.get(THUMBNAIL_UPLOAD_DIR + oldFileName));
                     } catch (Exception e) {
                         log.warn("删除旧缩略图文件失败", e);
                     }
                 }
-                
+
                 String thumbnailFileName = handleFileUpload(thumbnailFile, THUMBNAIL_UPLOAD_DIR);
-                video.setThumbnailUrl(THUMBNAIL_UPLOAD_DIR + thumbnailFileName);
+                // 保存为HTTP可访问的路径
+                video.setThumbnailUrl("/uploads/thumbnails/" + thumbnailFileName);
             }
             
             // 更新时长（如果提供）
@@ -313,28 +330,30 @@ public class VideosController {
             if (video == null) {
                 return ApiResponse.badRequest("视频不存在");
             }
-            
+
             // 删除视频文件
-            if (video.getVideoUrl() != null) {
+            if (video.getVideoUrl() != null && video.getVideoUrl().startsWith("/uploads/")) {
                 try {
-                    Files.deleteIfExists(Paths.get(video.getVideoUrl()));
+                    String fileName = video.getVideoUrl().substring(video.getVideoUrl().lastIndexOf("/") + 1);
+                    Files.deleteIfExists(Paths.get(VIDEO_UPLOAD_DIR + fileName));
                 } catch (Exception e) {
                     log.warn("删除视频文件失败", e);
                 }
             }
-            
+
             // 删除缩略图文件
-            if (video.getThumbnailUrl() != null) {
+            if (video.getThumbnailUrl() != null && video.getThumbnailUrl().startsWith("/uploads/")) {
                 try {
-                    Files.deleteIfExists(Paths.get(video.getThumbnailUrl()));
+                    String fileName = video.getThumbnailUrl().substring(video.getThumbnailUrl().lastIndexOf("/") + 1);
+                    Files.deleteIfExists(Paths.get(THUMBNAIL_UPLOAD_DIR + fileName));
                 } catch (Exception e) {
                     log.warn("删除缩略图文件失败", e);
                 }
             }
-            
+
             // 从数据库删除视频记录
             boolean result = videosService.removeById(id);
-            
+
             return ApiResponse.success(result);
         } catch (Exception e) {
             log.error("删除视频失败", e);
@@ -380,8 +399,92 @@ public class VideosController {
         // 保存文件
         Path targetPath = Paths.get(uploadDir).resolve(newFilename);
         Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
-        
+
         return newFilename;
+    }
+
+    /**
+     * 将视频和缩略图URL转换为HTTP可访问路径
+     * 处理旧数据中保存的绝对路径或相对路径
+     */
+    private void convertVideoUrls(Videos video) {
+        // 处理视频URL
+        String videoUrl = video.getVideoUrl();
+        if (videoUrl != null && !videoUrl.isEmpty()) {
+            video.setVideoUrl(convertUrl(videoUrl, "videos"));
+        }
+
+        // 处理缩略图URL
+        String thumbnailUrl = video.getThumbnailUrl();
+        if (thumbnailUrl != null && !thumbnailUrl.isEmpty()) {
+            video.setThumbnailUrl(convertUrl(thumbnailUrl, "thumbnails"));
+        }
+    }
+
+    /**
+     * 转换单个URL为HTTP可访问路径
+     */
+    private String convertUrl(String url, String defaultFolder) {
+        if (url == null || url.isEmpty()) {
+            return url;
+        }
+
+        // 已经是 /uploads/ 开头，直接返回
+        if (url.startsWith("/uploads/")) {
+            return url;
+        }
+
+        // 外部URL
+        if (url.startsWith("http://") || url.startsWith("https://")) {
+            return url;
+        }
+
+        // 替换反斜杠为正斜杠
+        String normalizedUrl = url.replace("\\", "/");
+
+        // 处理绝对路径（如 D:/xxx/uploads/thumbnails/xxx.png）
+        if (normalizedUrl.contains(":") || normalizedUrl.startsWith("/")) {
+            String fileName = extractFileName(normalizedUrl);
+            if (fileName != null && !fileName.isEmpty()) {
+                log.info("转换URL: {} -> /uploads/{}/{}", normalizedUrl, defaultFolder, fileName);
+                return "/uploads/" + defaultFolder + "/" + fileName;
+            }
+        }
+
+        // 包含 uploads/videos 或 uploads/thumbnails
+        if (normalizedUrl.contains("uploads/videos") || normalizedUrl.contains("uploads/thumbnails")) {
+            String fileName = extractFileName(normalizedUrl);
+            if (fileName != null && !fileName.isEmpty()) {
+                if (normalizedUrl.contains("videos")) {
+                    return "/uploads/videos/" + fileName;
+                } else {
+                    return "/uploads/thumbnails/" + fileName;
+                }
+            }
+        }
+
+        // 其他情况，假设是文件名
+        return "/uploads/" + defaultFolder + "/" + url;
+    }
+
+    /**
+     * 从路径中提取文件名
+     */
+    private String extractFileName(String path) {
+        if (path == null || path.isEmpty()) {
+            return null;
+        }
+
+        // 替换反斜杠为正斜杠
+        String normalizedPath = path.replace("\\", "/");
+
+        // 找到最后一个斜杠
+        int lastSlashIndex = normalizedPath.lastIndexOf('/');
+        if (lastSlashIndex >= 0 && lastSlashIndex < normalizedPath.length() - 1) {
+            return normalizedPath.substring(lastSlashIndex + 1);
+        }
+
+        return path;
     }
 
     @GetMapping("/secure/{id}")
@@ -390,6 +493,8 @@ public class VideosController {
         if (video == null) {
             return ApiResponse.badRequest("视频不存在");
         }
+        // 转换视频URL为HTTP可访问路径
+        convertVideoUrls(video);
         // 公开视频直接返回
         if (!"internal".equals(video.getAccessType())) {
             return ApiResponse.success(video);

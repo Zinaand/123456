@@ -260,13 +260,45 @@ export function VideoPlayer({
     }
   }, [currentTime]) // 依赖于 currentTime，确保使用最新的时间
 
+  // 处理视频 URL - 本地视频需要添加后端地址前缀
+  const getVideoSrc = () => {
+    if (!videoUrl) return "";
+
+    // 如果是外部 URL（包含 http 或 https），直接返回
+    if (videoUrl.startsWith("http://") || videoUrl.startsWith("https://")) {
+      return videoUrl;
+    }
+
+    // 如果是本地视频，返回完整的后端地址
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8090";
+    return `${apiUrl}${videoUrl}`;
+  };
+
+  // 处理缩略图 URL - 本地缩略图直接使用
+  const getThumbnailSrc = () => {
+    if (!thumbnailUrl) return "/placeholder.svg?height=720&width=1280";
+
+    // 已经是 /uploads/ 开头，直接使用
+    if (thumbnailUrl.startsWith('/uploads/')) {
+      return thumbnailUrl;
+    }
+
+    // 外部 URL（包含 http 或 https），直接返回
+    if (thumbnailUrl.startsWith("http://") || thumbnailUrl.startsWith("https://")) {
+      return thumbnailUrl;
+    }
+
+    // 其他情况添加前缀
+    return `/uploads/thumbnails/${thumbnailUrl}`;
+  };
+
   return (
     <div ref={playerRef} className={cn("relative overflow-hidden bg-black rounded-lg w-full", className)}>
       {/* 视频元素 */}
       <video
         ref={videoRef}
         className="w-full h-full"
-        poster={thumbnailUrl || "/placeholder.svg?height=720&width=1280"}
+        poster={getThumbnailSrc()}
         autoPlay={autoPlay}
         playsInline
         onClick={togglePlay}
@@ -278,8 +310,8 @@ export function VideoPlayer({
         onEnded={handleVideoEnded}
         controlsList={allowDownload ? "" : "nodownload"}
       >
-        <source src={videoUrl} type="video/mp4" />
-        <source src={videoUrl} type="video/webm" />
+        <source src={getVideoSrc()} type="video/mp4" />
+        <source src={getVideoSrc()} type="video/webm" />
         您的浏览器不支持视频播放
       </video>
 

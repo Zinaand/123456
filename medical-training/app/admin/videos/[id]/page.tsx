@@ -166,16 +166,20 @@ export default function VideoDetailsPage({ params }: { params: { id: string } })
             <CardContent>
               <div className="aspect-video bg-muted rounded-md overflow-hidden">
                 {video.thumbnailUrl ? (
-                  <img 
-                    src={video.thumbnailUrl} 
-                    alt={video.title} 
+                  <img
+                    src={video.thumbnailUrl.startsWith('/uploads/')
+                      ? video.thumbnailUrl
+                      : video.thumbnailUrl}
+                    alt={video.title}
                     className="w-full h-full object-cover"
                   />
                 ) : video.videoUrl ? (
-                  <video 
-                    src={video.videoUrl} 
-                    controls 
-                    poster="/placeholder.svg?height=400&width=800" 
+                  <video
+                    src={video.videoUrl.startsWith('/uploads/')
+                      ? `http://localhost:8090${video.videoUrl}`
+                      : video.videoUrl}
+                    controls
+                    poster="/placeholder.svg?height=400&width=800"
                     className="w-full h-full object-cover"
                   >
                     您的浏览器不支持视频播放

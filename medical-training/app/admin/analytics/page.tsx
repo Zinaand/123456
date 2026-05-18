@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import {
   BarChart,
   Bar,
@@ -21,171 +21,200 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { statsApi } from "@/lib/api"
+import { Skeleton } from "@/components/ui/skeleton"
 
 // 格式化时间(秒转换为时分秒)
 const formatTime = (seconds: number) => {
+  if (!seconds || seconds <= 0) return "0秒"
   const hours = Math.floor(seconds / 3600)
   const minutes = Math.floor((seconds % 3600) / 60)
   const remainingSeconds = seconds % 60
   
   if (hours > 0) {
-    return `${hours}小时${minutes}分钟`
+    return `${hours}小时${minutes > 0 ? minutes + '分钟' : ''}`
   } else if (minutes > 0) {
-    return `${minutes}分钟${remainingSeconds}秒`
+    return `${minutes}分钟${remainingSeconds > 0 ? remainingSeconds + '秒' : ''}`
   } else {
     return `${remainingSeconds}秒`
   }
 }
 
+// 饼图颜色
+const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8", "#82ca9d", "#FF6B6B", "#4ECDC4"]
+
+interface OverviewStats {
+  totalUsers: number
+  totalMembers: number
+  totalVideos: number
+  totalViews: number
+  todayUsers: number
+  monthUsers: number
+}
+
+interface MonthlyRegistration {
+  name: string
+  month: string
+  新会员: number
+}
+
+interface MonthlyView {
+  name: string
+  month: string
+  总观看次数: number
+  会员观看: number
+  非会员观看: number
+}
+
+interface CategoryDistribution {
+  name: string
+  value: number
+  percentage: number
+  categoryId: number
+}
+
+interface TopVideo {
+  id: number
+  name: string
+  views: number
+  thumbnailUrl: string
+  categoryName: string
+}
+
+interface UserWatchTime {
+  userId: number
+  userName?: string
+  watchTime: number
+}
+
+interface VideoPlayTime {
+  videoId: number
+  videoName?: string
+  playTime: number
+}
+
 export default function AnalyticsPage() {
   const [timeRange, setTimeRange] = useState("month")
-  const [userWatchTimeData, setUserWatchTimeData] = useState<{userId: number, watchTime: number}[]>([])
-  const [videoPlayTimeData, setVideoPlayTimeData] = useState<{videoId: number, playTime: number}[]>([])
+  
+  // 数据状态
+  const [overviewStats, setOverviewStats] = useState<OverviewStats | null>(null)
+  const [monthlyRegistration, setMonthlyRegistration] = useState<MonthlyRegistration[]>([])
+  const [monthlyViews, setMonthlyViews] = useState<MonthlyView[]>([])
+  const [categoryDistribution, setCategoryDistribution] = useState<CategoryDistribution[]>([])
+  const [topVideos, setTopVideos] = useState<TopVideo[]>([])
+  const [userWatchTimeData, setUserWatchTimeData] = useState<UserWatchTime[]>([])
+  const [videoPlayTimeData, setVideoPlayTimeData] = useState<VideoPlayTime[]>([])
+  
+  // 加载状态
   const [loading, setLoading] = useState({
+    overview: true,
+    registration: true,
+    views: true,
+    categories: true,
+    topVideos: true,
     userWatchTime: true,
-    videoPlayTime: true
+    videoPlayTime: true,
   })
 
-  // 从后端获取数据
-  useEffect(() => {
-    // 获取用户观看时间数据
-    const fetchUserWatchTime = async () => {
-      try {
-        setLoading(prev => ({ ...prev, userWatchTime: true }))
-        console.log("开始获取用户观看时间数据...")
-        const response = await statsApi.getAllUserWatchTime()
-        console.log("用户观看时间数据原始返回:", response)
-        
-        if (!response || !response.data) {
-          console.error("API返回数据为空或无效")
-          return
-        }
-        
-        // 转换数据格式
-        const entries = Object.entries(response.data || {})
-        console.log("用户观看时间数据条目:", entries)
-        
-        if (entries.length === 0) {
-          console.warn("用户观看时间数据为空")
-          return
-        }
-        
-        const formattedData = entries.map(([userId, watchTime]) => {
-          console.log(`处理用户 ${userId}, 观看时间 ${watchTime}`)
-          return {
-            userId: Number(userId),
-            watchTime: Number(watchTime)
-          }
-        }).sort((a, b) => b.watchTime - a.watchTime) // 按观看时间降序排序
-        
-        console.log("格式化后的用户观看时间数据:", formattedData)
-        setUserWatchTimeData(formattedData)
-      } catch (error) {
-        console.error("获取用户观看时间数据失败:", error)
-        // 出错时不更新状态，保持空数组
-      } finally {
-        setLoading(prev => ({ ...prev, userWatchTime: false }))
-      }
-    }
+  // 加载所有统计数据
+  const loadAllStats = useCallback(async () => {
+    setLoading(prev => ({
+      overview: true,
+      registration: true,
+      views: true,
+      categories: true,
+      topVideos: true,
+      userWatchTime: true,
+      videoPlayTime: true,
+    }))
 
-    // 获取视频播放时间数据
-    const fetchVideoPlayTime = async () => {
-      try {
-        setLoading(prev => ({ ...prev, videoPlayTime: true }))
-        console.log("开始获取视频播放时间数据...")
-        const response = await statsApi.getAllVideoPlayTime()
-        console.log("视频播放时间数据原始返回:", response)
-        
-        if (!response || !response.data) {
-          console.error("API返回数据为空或无效")
-          return
-        }
-        
-        // 转换数据格式
-        const entries = Object.entries(response.data || {})
-        console.log("视频播放时间数据条目:", entries)
-        
-        if (entries.length === 0) {
-          console.warn("视频播放时间数据为空")
-          return
-        }
-        
-        const formattedData = entries.map(([videoId, playTime]) => {
-          console.log(`处理视频 ${videoId}, 播放时间 ${playTime}`)
-          return {
-            videoId: Number(videoId),
-            playTime: Number(playTime)
-          }
-        }).sort((a, b) => b.playTime - a.playTime) // 按播放时间降序排序
-        
-        console.log("格式化后的视频播放时间数据:", formattedData)
-        setVideoPlayTimeData(formattedData)
-      } catch (error) {
-        console.error("获取视频播放时间数据失败:", error)
-        // 出错时不更新状态，保持空数组
-      } finally {
-        setLoading(prev => ({ ...prev, videoPlayTime: false }))
-      }
-    }
+    // 并行加载所有数据
+    const [
+      overviewRes,
+      registrationRes,
+      viewsRes,
+      categoriesRes,
+      topVideosRes,
+      userWatchTimeRes,
+      videoPlayTimeRes
+    ] = await Promise.allSettled([
+      statsApi.getOverview(),
+      statsApi.getMonthlyRegistration(),
+      statsApi.getMonthlyViews(),
+      statsApi.getCategoryDistribution(),
+      statsApi.getTopVideos(10),
+      statsApi.getAllUserWatchTime(),
+      statsApi.getAllVideoPlayTime(),
+    ])
 
-    fetchUserWatchTime()
-    fetchVideoPlayTime()
+    // 处理总览数据
+    if (overviewRes.status === 'fulfilled' && overviewRes.value.data) {
+      setOverviewStats(overviewRes.value.data.data)
+    }
+    setLoading(prev => ({ ...prev, overview: false }))
+
+    // 处理会员注册趋势数据
+    if (registrationRes.status === 'fulfilled' && registrationRes.value.data) {
+      setMonthlyRegistration(registrationRes.value.data.data)
+    }
+    setLoading(prev => ({ ...prev, registration: false }))
+
+    // 处理视频观看统计
+    if (viewsRes.status === 'fulfilled' && viewsRes.value.data) {
+      setMonthlyViews(viewsRes.value.data.data)
+    }
+    setLoading(prev => ({ ...prev, views: false }))
+
+    // 处理视频类型分布
+    if (categoriesRes.status === 'fulfilled' && categoriesRes.value.data) {
+      setCategoryDistribution(categoriesRes.value.data.data)
+    }
+    setLoading(prev => ({ ...prev, categories: false }))
+
+    // 处理热门视频
+    if (topVideosRes.status === 'fulfilled' && topVideosRes.value.data) {
+      setTopVideos(topVideosRes.value.data.data)
+    }
+    setLoading(prev => ({ ...prev, topVideos: false }))
+
+    // 处理用户观看时间
+    if (userWatchTimeRes.status === 'fulfilled' && userWatchTimeRes.value.data) {
+      const data = userWatchTimeRes.value.data.data
+      const entries = Object.entries(data || {})
+      const formattedData: UserWatchTime[] = entries.map(([userId, watchTime]) => ({
+        userId: Number(userId),
+        watchTime: Number(watchTime)
+      })).sort((a, b) => b.watchTime - a.watchTime)
+      setUserWatchTimeData(formattedData)
+    }
+    setLoading(prev => ({ ...prev, userWatchTime: false }))
+
+    // 处理视频播放时间
+    if (videoPlayTimeRes.status === 'fulfilled' && videoPlayTimeRes.value.data) {
+      const data = videoPlayTimeRes.value.data.data
+      const entries = Object.entries(data || {})
+      const formattedData: VideoPlayTime[] = entries.map(([videoId, playTime]) => ({
+        videoId: Number(videoId),
+        playTime: Number(playTime)
+      })).sort((a, b) => b.playTime - a.playTime)
+      setVideoPlayTimeData(formattedData)
+    }
+    setLoading(prev => ({ ...prev, videoPlayTime: false }))
   }, [])
-  
-  // "总览"选项卡的模拟数据 - 仅用于展示
-  // 模拟数据 - 会员注册统计
-  const memberData = [
-    { name: "1月", 新会员: 65 },
-    { name: "2月", 新会员: 78 },
-    { name: "3月", 新会员: 90 },
-    { name: "4月", 新会员: 81 },
-    { name: "5月", 新会员: 95 },
-    { name: "6月", 新会员: 110 },
-    { name: "7月", 新会员: 120 },
-  ]
 
-  // 模拟数据 - 视频观看统计
-  const videoViewData = [
-    { name: "1月", 总观看次数: 1200, 会员观看: 800, 非会员观看: 400 },
-    { name: "2月", 总观看次数: 1350, 会员观看: 950, 非会员观看: 400 },
-    { name: "3月", 总观看次数: 1500, 会员观看: 1100, 非会员观看: 400 },
-    { name: "4月", 总观看次数: 1400, 会员观看: 1000, 非会员观看: 400 },
-    { name: "5月", 总观看次数: 1600, 会员观看: 1200, 非会员观看: 400 },
-    { name: "6月", 总观看次数: 1800, 会员观看: 1300, 非会员观看: 500 },
-    { name: "7月", 总观看次数: 2000, 会员观看: 1500, 非会员观看: 500 },
-  ]
+  useEffect(() => {
+    loadAllStats()
+  }, [loadAllStats])
 
-  // 模拟数据 - 视频类型分布
-  const videoTypeData = [
-    { name: "基础护理", value: 35 },
-    { name: "急救技术", value: 25 },
-    { name: "医疗设备", value: 20 },
-    { name: "沟通技巧", value: 15 },
-    { name: "其他", value: 5 },
-  ]
-
-  // 饼图颜色
-  const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8"]
-
-  // 模拟数据 - 热门视频排名
-  const topVideosData = [
-    { name: "基础护理技能培训", views: 1245 },
-    { name: "高级心肺复苏技术", views: 987 },
-    { name: "医疗设备操作指南", views: 876 },
-    { name: "患者沟通技巧", views: 765 },
-    { name: "急救药物使用指南", views: 654 },
-  ]
-
-  // 为用户观看时间生成图表数据
+  // 生成用户观看时间图表数据
   const userWatchTimeChartData = userWatchTimeData.slice(0, 10).map(item => ({
-    userId: `用户ID: ${item.userId}`,
+    name: `用户 ${item.userId}`,
     watchTime: item.watchTime,
     formattedTime: formatTime(item.watchTime)
   }))
 
-  // 为视频播放时间生成图表数据
+  // 生成视频播放时间图表数据
   const videoPlayTimeChartData = videoPlayTimeData.slice(0, 10).map(item => ({
-    videoId: `视频ID: ${item.videoId}`,
+    name: `视频 ${item.videoId}`,
     playTime: item.playTime,
     formattedTime: formatTime(item.playTime)
   }))
@@ -210,6 +239,98 @@ export default function AnalyticsPage() {
         </Select>
       </div>
 
+      {/* 概览卡片 */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">总用户数</CardTitle>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4 text-muted-foreground">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+          </CardHeader>
+          <CardContent>
+            {loading.overview ? (
+              <Skeleton className="h-8 w-20" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{overviewStats?.totalUsers || 0}</div>
+                <p className="text-xs text-muted-foreground">
+                  本月新增 {overviewStats?.monthUsers || 0} 会员
+                </p>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">总会员数</CardTitle>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4 text-muted-foreground">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+            </svg>
+          </CardHeader>
+          <CardContent>
+            {loading.overview ? (
+              <Skeleton className="h-8 w-20" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{overviewStats?.totalMembers || 0}</div>
+                <p className="text-xs text-muted-foreground">
+                  活跃会员占比 {overviewStats?.totalUsers ? Math.round((overviewStats?.totalMembers || 0) / overviewStats?.totalUsers * 100) : 0}%
+                </p>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">总视频数</CardTitle>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4 text-muted-foreground">
+              <polygon points="23 7 16 12 23 17 23 7" />
+              <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+            </svg>
+          </CardHeader>
+          <CardContent>
+            {loading.overview ? (
+              <Skeleton className="h-8 w-20" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{overviewStats?.totalVideos || 0}</div>
+                <p className="text-xs text-muted-foreground">
+                  视频总观看 {overviewStats?.totalViews || 0} 次
+                </p>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">今日新增</CardTitle>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4 text-muted-foreground">
+              <path d="M12 8v4l3 3" />
+              <circle cx="12" cy="12" r="10" />
+            </svg>
+          </CardHeader>
+          <CardContent>
+            {loading.overview ? (
+              <Skeleton className="h-8 w-20" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{overviewStats?.todayUsers || 0}</div>
+                <p className="text-xs text-muted-foreground">
+                  较昨日 +{overviewStats?.todayUsers || 0}
+                </p>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
       <Tabs defaultValue="overview">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="overview">总览</TabsTrigger>
@@ -217,110 +338,159 @@ export default function AnalyticsPage() {
           <TabsTrigger value="videos">视频分析</TabsTrigger>
         </TabsList>
 
+        {/* 总览选项卡 */}
         <TabsContent value="overview" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
+            {/* 会员注册趋势 */}
             <Card>
               <CardHeader>
                 <CardTitle>会员注册趋势</CardTitle>
-                <CardDescription>查看会员注册数量变化趋势</CardDescription>
+                <CardDescription>每月新会员注册数量变化</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={memberData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Line type="monotone" dataKey="新会员" stroke="#8884d8" activeDot={{ r: 8 }} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
+                {loading.registration ? (
+                  <Skeleton className="h-[300px] w-full" />
+                ) : monthlyRegistration.length === 0 ? (
+                  <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                    暂无注册数据
+                  </div>
+                ) : (
+                  <div className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={monthlyRegistration}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <Tooltip 
+                          formatter={(value: number) => [`${value} 人`, '新会员']}
+                        />
+                        <Legend />
+                        <Line 
+                          type="monotone" 
+                          dataKey="新会员" 
+                          stroke="#8884d8" 
+                          activeDot={{ r: 8 }}
+                          name="新会员"
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
+            {/* 视频观看统计 */}
             <Card>
               <CardHeader>
                 <CardTitle>视频观看统计</CardTitle>
-                <CardDescription>查看视频观看数量变化趋势</CardDescription>
+                <CardDescription>会员与非会员观看对比</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={videoViewData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="会员观看" stackId="a" fill="#8884d8" />
-                      <Bar dataKey="非会员观看" stackId="a" fill="#82ca9d" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+                {loading.views ? (
+                  <Skeleton className="h-[300px] w-full" />
+                ) : monthlyViews.length === 0 ? (
+                  <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                    暂无观看数据
+                  </div>
+                ) : (
+                  <div className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={monthlyViews}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <Tooltip 
+                          formatter={(value: number, name: string) => [`${value} 次`, name]}
+                        />
+                        <Legend />
+                        <Bar dataKey="会员观看" stackId="a" fill="#8884d8" name="会员观看" />
+                        <Bar dataKey="非会员观看" stackId="a" fill="#82ca9d" name="非会员观看" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
+            {/* 视频类型分布 */}
             <Card>
               <CardHeader>
                 <CardTitle>视频类型分布</CardTitle>
                 <CardDescription>各类型视频数量占比</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={videoTypeData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={true}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                      >
-                        {videoTypeData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
+                {loading.categories ? (
+                  <Skeleton className="h-[300px] w-full" />
+                ) : categoryDistribution.length === 0 ? (
+                  <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                    暂无分类数据
+                  </div>
+                ) : (
+                  <div className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={categoryDistribution}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={true}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        >
+                          {categoryDistribution.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value: number) => [`${value} 个视频`, '视频数量']} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
+            {/* 热门视频排名 */}
             <Card>
               <CardHeader>
                 <CardTitle>热门视频排名</CardTitle>
-                <CardDescription>观看次数最多的视频</CardDescription>
+                <CardDescription>观看次数最多的视频 TOP10</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      layout="vertical"
-                      data={topVideosData}
-                      margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis type="number" />
-                      <YAxis type="category" dataKey="name" />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="views" fill="#8884d8" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+                {loading.topVideos ? (
+                  <Skeleton className="h-[300px] w-full" />
+                ) : topVideos.length === 0 ? (
+                  <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                    暂无视频数据
+                  </div>
+                ) : (
+                  <div className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        layout="vertical"
+                        data={topVideos}
+                        margin={{ top: 5, right: 30, left: 100, bottom: 5 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis type="number" />
+                        <YAxis type="category" dataKey="name" width={100} />
+                        <Tooltip 
+                          formatter={(value: number) => [`${value} 次`, '观看次数']}
+                        />
+                        <Bar dataKey="views" fill="#8884d8" name="观看次数" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
         </TabsContent>
 
+        {/* 会员分析选项卡 */}
         <TabsContent value="members" className="space-y-4">
           <Card>
             <CardHeader>
@@ -329,20 +499,22 @@ export default function AnalyticsPage() {
             </CardHeader>
             <CardContent>
               {loading.userWatchTime ? (
-                <p className="text-center py-12 text-muted-foreground">正在加载数据...</p>
+                <Skeleton className="h-[400px] w-full" />
               ) : userWatchTimeData.length === 0 ? (
-                <p className="text-center py-12 text-muted-foreground">暂无用户观看时间数据或数据加载失败</p>
+                <div className="h-[400px] flex items-center justify-center text-muted-foreground">
+                  暂无用户观看时间数据
+                </div>
               ) : (
                 <div className="h-[400px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       layout="vertical"
                       data={userWatchTimeChartData}
-                      margin={{ top: 5, right: 30, left: 50, bottom: 5 }}
+                      margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis type="number" />
-                      <YAxis type="category" dataKey="userId" width={80} />
+                      <YAxis type="category" dataKey="name" width={70} />
                       <Tooltip 
                         formatter={(value: number) => [formatTime(value), '观看时间']}
                       />
@@ -362,14 +534,21 @@ export default function AnalyticsPage() {
             </CardHeader>
             <CardContent>
               {loading.userWatchTime ? (
-                <p className="text-center py-12 text-muted-foreground">正在加载数据...</p>
+                <div className="space-y-2">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <Skeleton key={i} className="h-12 w-full" />
+                  ))}
+                </div>
               ) : userWatchTimeData.length === 0 ? (
-                <p className="text-center py-12 text-muted-foreground">暂无用户观看时间数据或数据加载失败</p>
+                <div className="py-12 text-center text-muted-foreground">
+                  暂无用户观看时间数据
+                </div>
               ) : (
                 <div className="relative overflow-x-auto">
                   <table className="w-full text-sm text-left">
                     <thead className="text-xs uppercase bg-gray-50 dark:bg-gray-700">
                       <tr>
+                        <th scope="col" className="px-6 py-3">排名</th>
                         <th scope="col" className="px-6 py-3">用户ID</th>
                         <th scope="col" className="px-6 py-3">总观看时间</th>
                         <th scope="col" className="px-6 py-3">占比</th>
@@ -381,7 +560,8 @@ export default function AnalyticsPage() {
                         const percentage = totalTime > 0 ? (item.watchTime / totalTime * 100).toFixed(2) : '0.00'
                         
                         return (
-                          <tr key={index} className="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                          <tr key={item.userId} className="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                            <td className="px-6 py-4 font-medium">#{index + 1}</td>
                             <td className="px-6 py-4">{item.userId}</td>
                             <td className="px-6 py-4">{formatTime(item.watchTime)}</td>
                             <td className="px-6 py-4">{percentage}%</td>
@@ -396,6 +576,7 @@ export default function AnalyticsPage() {
           </Card>
         </TabsContent>
 
+        {/* 视频分析选项卡 */}
         <TabsContent value="videos" className="space-y-4">
           <Card>
             <CardHeader>
@@ -404,20 +585,22 @@ export default function AnalyticsPage() {
             </CardHeader>
             <CardContent>
               {loading.videoPlayTime ? (
-                <p className="text-center py-12 text-muted-foreground">正在加载数据...</p>
+                <Skeleton className="h-[400px] w-full" />
               ) : videoPlayTimeData.length === 0 ? (
-                <p className="text-center py-12 text-muted-foreground">暂无视频播放时间数据或数据加载失败</p>
+                <div className="h-[400px] flex items-center justify-center text-muted-foreground">
+                  暂无视频播放时间数据
+                </div>
               ) : (
                 <div className="h-[400px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       layout="vertical"
                       data={videoPlayTimeChartData}
-                      margin={{ top: 5, right: 30, left: 50, bottom: 5 }}
+                      margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis type="number" />
-                      <YAxis type="category" dataKey="videoId" width={80} />
+                      <YAxis type="category" dataKey="name" width={70} />
                       <Tooltip 
                         formatter={(value: number) => [formatTime(value), '播放时间']}
                       />
@@ -437,14 +620,21 @@ export default function AnalyticsPage() {
             </CardHeader>
             <CardContent>
               {loading.videoPlayTime ? (
-                <p className="text-center py-12 text-muted-foreground">正在加载数据...</p>
+                <div className="space-y-2">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <Skeleton key={i} className="h-12 w-full" />
+                  ))}
+                </div>
               ) : videoPlayTimeData.length === 0 ? (
-                <p className="text-center py-12 text-muted-foreground">暂无视频播放时间数据或数据加载失败</p>
+                <div className="py-12 text-center text-muted-foreground">
+                  暂无视频播放时间数据
+                </div>
               ) : (
                 <div className="relative overflow-x-auto">
                   <table className="w-full text-sm text-left">
                     <thead className="text-xs uppercase bg-gray-50 dark:bg-gray-700">
                       <tr>
+                        <th scope="col" className="px-6 py-3">排名</th>
                         <th scope="col" className="px-6 py-3">视频ID</th>
                         <th scope="col" className="px-6 py-3">总播放时间</th>
                         <th scope="col" className="px-6 py-3">占比</th>
@@ -456,7 +646,8 @@ export default function AnalyticsPage() {
                         const percentage = totalTime > 0 ? (item.playTime / totalTime * 100).toFixed(2) : '0.00'
                         
                         return (
-                          <tr key={index} className="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                          <tr key={item.videoId} className="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                            <td className="px-6 py-4 font-medium">#{index + 1}</td>
                             <td className="px-6 py-4">{item.videoId}</td>
                             <td className="px-6 py-4">{formatTime(item.playTime)}</td>
                             <td className="px-6 py-4">{percentage}%</td>
