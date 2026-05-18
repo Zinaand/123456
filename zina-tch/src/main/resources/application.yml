@@ -4,11 +4,22 @@ server:
   # 添加Tomcat连接超时配置
   tomcat:
     connection-timeout: 120000  # 120秒
+    # Tomcat最大POST大小和文件上传大小
+    max-swallow-size: 500MB
+    connection-upload-timeout: 300000
   servlet:
     session:
       timeout: 30m
       
 spring:
+  # 文件上传配置
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 500MB        # 单个文件最大500MB
+      max-request-size: 600MB      # 整个请求最大600MB
+      file-size-threshold: 10MB   # 超过10MB写入磁盘
+      resolve-lazily: false
   thymeleaf:
     cache: false
     prefix: classpath:/templates/
@@ -39,7 +50,7 @@ spring:
   # 添加MVC配置，增加请求超时
   mvc:
     async:
-      request-timeout: 120000 # 120秒
+      request-timeout: 300000 # 5分钟
 
 # MyBatis-Plus配置
 mybatis-plus:

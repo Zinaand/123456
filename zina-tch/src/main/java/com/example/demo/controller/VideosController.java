@@ -47,11 +47,13 @@ public class VideosController {
     private final UsersService usersService;
     private final UserService userService;
     private final JwtUtil jwtUtil;
-    
+
+    // 获取项目运行目录
+    private static final String UPLOAD_BASE_DIR = System.getProperty("user.dir") + "/uploads";
     // 视频文件存储路径
-    private static final String VIDEO_UPLOAD_DIR = "/uploads/videos/";
+    private static final String VIDEO_UPLOAD_DIR = UPLOAD_BASE_DIR + "/videos/";
     // 缩略图文件存储路径
-    private static final String THUMBNAIL_UPLOAD_DIR = "/uploads/thumbnails/";
+    private static final String THUMBNAIL_UPLOAD_DIR = UPLOAD_BASE_DIR + "/thumbnails/";
     
     /**
      * 获取视频列表（分页）

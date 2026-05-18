@@ -62,11 +62,13 @@ export function VideoForm({ videoId, onSuccess }: VideoFormProps) {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        // 实际项目中这里应该调用API获取分类
-        // const response = await videoApi.getCategories()
-        // setCategories(response.data)
-        
-        // 模拟分类数据
+        const response = await api.get('/api/categories')
+        if (response.data && response.data.data) {
+          setCategories(response.data.data)
+        }
+      } catch (error) {
+        console.error("获取视频分类失败", error)
+        // 如果API失败，使用默认分类
         setCategories([
           { id: 1, name: "基础医学" },
           { id: 2, name: "临床护理" },
@@ -74,13 +76,6 @@ export function VideoForm({ videoId, onSuccess }: VideoFormProps) {
           { id: 4, name: "医疗设备操作" },
           { id: 5, name: "病患沟通" },
         ])
-      } catch (error) {
-        console.error("获取视频分类失败", error)
-        toast({
-          variant: "destructive",
-          title: "获取视频分类失败",
-          description: "无法加载视频分类数据，请刷新页面重试",
-        })
       }
     }
     
@@ -91,11 +86,13 @@ export function VideoForm({ videoId, onSuccess }: VideoFormProps) {
   useEffect(() => {
     const fetchInstructors = async () => {
       try {
-        // 实际项目中这里应该调用API获取讲师列表
-        // const response = await api.getInstructors()
-        // setInstructors(response.data)
-        
-        // 模拟讲师数据
+        const response = await api.get('/api/instructors')
+        if (response.data && response.data.data) {
+          setInstructors(response.data.data)
+        }
+      } catch (error) {
+        console.error("获取讲师列表失败", error)
+        // 如果API失败，使用默认讲师
         setInstructors([
           { id: 1, name: "张教授" },
           { id: 2, name: "王医生" },
@@ -103,13 +100,6 @@ export function VideoForm({ videoId, onSuccess }: VideoFormProps) {
           { id: 4, name: "赵护士长" },
           { id: 5, name: "钱医生" },
         ])
-      } catch (error) {
-        console.error("获取讲师列表失败", error)
-        toast({
-          variant: "destructive",
-          title: "获取讲师列表失败",
-          description: "无法加载讲师数据，请刷新页面重试",
-        })
       }
     }
     
@@ -122,38 +112,30 @@ export function VideoForm({ videoId, onSuccess }: VideoFormProps) {
       const fetchVideoData = async () => {
         try {
           setIsLoading(true)
-          // 实际项目中这里应该调用API获取视频详情
-          // const response = await videoApi.getVideoById(videoId)
-          // const videoData = response.data
+          const response = await videoApi.getVideoById(videoId)
           
-          // 模拟视频数据
-          const videoData = {
-            id: videoId,
-            title: "医疗团队协作",
-            description: "本视频详细讲解医疗团队协作的重要性和具体方法，适合所有医护人员观看学习。",
-            categoryId: "3",
-            instructorId: "3",
-            accessType: "internal",
-            status: "published",
-            videoUrl: "https://www.bilibili.com/video/BV1c4411p7gG/", 
-            thumbnailUrl: "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
-            duration: 1800, // 30分钟
+          if (response.data && response.data.data) {
+            const videoData = response.data.data
+            
+            // 设置表单初始值
+            form.reset({
+              title: videoData.title,
+              description: videoData.description,
+              categoryId: videoData.categoryId?.toString() || "",
+              instructorId: videoData.instructorId?.toString() || "",
+              accessType: videoData.accessType || "external",
+              status: videoData.status || "draft",
+              duration: videoData.duration,
+            })
+            
+            // 设置预览
+            if (videoData.videoUrl) {
+              setVideoPreview(videoData.videoUrl)
+            }
+            if (videoData.thumbnailUrl) {
+              setThumbnailPreview(videoData.thumbnailUrl)
+            }
           }
-          
-          // 设置表单初始值
-          form.reset({
-            title: videoData.title,
-            description: videoData.description,
-            categoryId: videoData.categoryId,
-            instructorId: videoData.instructorId,
-            accessType: videoData.accessType as "external" | "internal",
-            status: videoData.status as "draft" | "published" | "archived",
-            duration: videoData.duration,
-          })
-          
-          // 设置预览
-          setVideoPreview(videoData.videoUrl)
-          setThumbnailPreview(videoData.thumbnailUrl)
         } catch (error) {
           console.error("获取视频数据失败", error)
           toast({
@@ -243,7 +225,7 @@ export function VideoForm({ videoId, onSuccess }: VideoFormProps) {
       
       if (videoId) {
         // 更新现有视频
-        // await videoApi.updateVideo(videoId, formData)
+        await videoApi.updateVideo(videoId, formData)
         console.log("更新视频数据", formData)
         toast({
           title: "视频更新成功",
@@ -251,8 +233,7 @@ export function VideoForm({ videoId, onSuccess }: VideoFormProps) {
         })
       } else {
         // 创建新视频
-        // await videoApi.createVideo(formData)
-        console.log("创建新视频", formData)
+        await videoApi.createVideo(formData)
         toast({
           title: "视频创建成功",
           description: "新视频已成功上传到系统",
