@@ -21,6 +21,7 @@ export default function CourseDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const viewRecordedRef = useRef(false);
 
   useEffect(() => {
     const fetchVideoDetail = async () => {
@@ -75,6 +76,22 @@ export default function CourseDetailPage() {
     );
   }
 
+  const handleVideoPlay = async () => {
+    setIsPlaying(true);
+    if (viewRecordedRef.current) return;
+    viewRecordedRef.current = true;
+    try {
+      const response = await videoApi.recordView(videoId);
+      const apiResponse = response.data as ApiResponse<{ views: number }>;
+      if (apiResponse.code === 200 && apiResponse.data?.views != null) {
+        setVideo((prev) => prev ? { ...prev, views: apiResponse.data.views } : prev);
+      }
+    } catch (err) {
+      console.error("记录观看失败:", err);
+      viewRecordedRef.current = false;
+    }
+  };
+
   // 格式化上传日期
   const uploadDate = new Date(video.uploadDate).toLocaleDateString('zh-CN');
   // 获取分类名称
@@ -104,7 +121,7 @@ export default function CourseDetailPage() {
               videoUrl={video.videoUrl}
               thumbnailUrl={video.thumbnailUrl}
               title={video.title}
-              onPlay={() => setIsPlaying(true)}
+              onPlay={handleVideoPlay}
               onPause={() => setIsPlaying(false)}
               onError={() => {
                 toast({

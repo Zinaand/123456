@@ -108,23 +108,17 @@ public class StatsServiceImpl implements StatsService {
         cal.add(Calendar.MONTH, -11);
         Date startDate = cal.getTime();
         
-        QueryWrapper<WatchHistory> queryWrapper = new QueryWrapper<>();
-        queryWrapper.select("DATE_FORMAT(last_watched, '%Y-%m') as month", 
-                           "COUNT(*) as total_views")
-                .ge("last_watched", startDate)
-                .isNotNull("last_watched")
-                .groupBy("DATE_FORMAT(last_watched, '%Y-%m')")
-                .orderByAsc("month");
-        
-        logger.info("SQL: {}", queryWrapper.getSqlSegment());
-        List<Map<String, Object>> result = watchHistoryMapper.selectMaps(queryWrapper);
+        List<Map<String, Object>> result = watchHistoryMapper.selectMonthlyViewsByMembership(startDate);
         logger.info("查询到 {} 条月度观看记录", result.size());
         
         Map<String, Integer> monthTotalViews = new HashMap<>();
+        Map<String, Integer> monthMemberViews = new HashMap<>();
+        Map<String, Integer> monthNonMemberViews = new HashMap<>();
         for (Map<String, Object> row : result) {
             String month = row.get("month") != null ? row.get("month").toString() : "unknown";
-            int count = toInt(row.get("total_views"));
-            monthTotalViews.put(month, count);
+            monthTotalViews.put(month, toInt(row.get("total_views")));
+            monthMemberViews.put(month, toInt(row.get("member_views")));
+            monthNonMemberViews.put(month, toInt(row.get("non_member_views")));
         }
         
         List<Map<String, Object>> stats = new ArrayList<>();
@@ -137,14 +131,12 @@ public class StatsServiceImpl implements StatsService {
             String monthKey = sdf.format(tempCal.getTime());
             String displayName = displaySdf.format(tempCal.getTime());
             
-            int totalViews = monthTotalViews.getOrDefault(monthKey, 0);
-            
             Map<String, Object> item = new HashMap<>();
             item.put("name", displayName);
             item.put("month", monthKey);
-            item.put("总观看次数", totalViews);
-            item.put("会员观看", totalViews);
-            item.put("非会员观看", 0);
+            item.put("总观看次数", monthTotalViews.getOrDefault(monthKey, 0));
+            item.put("会员观看", monthMemberViews.getOrDefault(monthKey, 0));
+            item.put("非会员观看", monthNonMemberViews.getOrDefault(monthKey, 0));
             stats.add(item);
         }
         
@@ -201,6 +193,7 @@ public class StatsServiceImpl implements StatsService {
         
         QueryWrapper<Videos> queryWrapper = new QueryWrapper<>();
         queryWrapper.select("id", "title", "views", "thumbnail_url", "category_id")
+                .eq("status", "published")
                 .orderByDesc("views")
                 .last("LIMIT " + limit);
         
@@ -293,10 +286,16 @@ public class StatsServiceImpl implements StatsService {
         logger.info("总视频数: {}", totalVideos);
         stats.put("totalVideos", totalVideos != null ? totalVideos.longValue() : 0L);
         
-        // 总观看次数
-        Integer totalViews = watchHistoryMapper.selectCount(null);
-        logger.info("总观看次数: {}", totalViews);
-        stats.put("totalViews", totalViews != null ? totalViews.longValue() : 0L);
+        // 总播放量（各视频 views 字段之和）
+        QueryWrapper<Videos> viewsSumQuery = new QueryWrapper<>();
+        viewsSumQuery.select("IFNULL(SUM(views), 0) as total_views");
+        List<Map<String, Object>> viewsSumResult = videosMapper.selectMaps(viewsSumQuery);
+        long totalViews = 0L;
+        if (!viewsSumResult.isEmpty() && viewsSumResult.get(0) != null) {
+            totalViews = toLong(viewsSumResult.get(0).get("total_views"));
+        }
+        logger.info("总播放量: {}", totalViews);
+        stats.put("totalViews", totalViews);
         
         // 今日新增用户
         Calendar today = Calendar.getInstance();

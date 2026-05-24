@@ -301,7 +301,7 @@ export default function AnalyticsPage() {
               <>
                 <div className="text-2xl font-bold">{overviewStats?.totalVideos || 0}</div>
                 <p className="text-xs text-muted-foreground">
-                  视频总观看 {overviewStats?.totalViews || 0} 次
+                  视频总播放量 {overviewStats?.totalViews || 0} 次
                 </p>
               </>
             )}
@@ -383,7 +383,7 @@ export default function AnalyticsPage() {
             <Card>
               <CardHeader>
                 <CardTitle>视频观看统计</CardTitle>
-                <CardDescription>会员与非会员观看对比</CardDescription>
+                <CardDescription>按播放量统计的会员与非会员观看对比</CardDescription>
               </CardHeader>
               <CardContent>
                 {loading.views ? (
@@ -578,6 +578,49 @@ export default function AnalyticsPage() {
 
         {/* 视频分析选项卡 */}
         <TabsContent value="videos" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>热门视频播放量排名</CardTitle>
+              <CardDescription>按视频播放量（views）统计的 TOP10 排名</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loading.topVideos ? (
+                <div className="space-y-2">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <Skeleton key={i} className="h-12 w-full" />
+                  ))}
+                </div>
+              ) : topVideos.length === 0 ? (
+                <div className="py-12 text-center text-muted-foreground">
+                  暂无播放量数据
+                </div>
+              ) : (
+                <div className="relative overflow-x-auto">
+                  <table className="w-full text-sm text-left">
+                    <thead className="text-xs uppercase bg-gray-50 dark:bg-gray-700">
+                      <tr>
+                        <th scope="col" className="px-6 py-3">排名</th>
+                        <th scope="col" className="px-6 py-3">视频名称</th>
+                        <th scope="col" className="px-6 py-3">分类</th>
+                        <th scope="col" className="px-6 py-3">播放量</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {topVideos.map((item, index) => (
+                        <tr key={item.id} className="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                          <td className="px-6 py-4 font-medium">#{index + 1}</td>
+                          <td className="px-6 py-4">{item.name}</td>
+                          <td className="px-6 py-4">{item.categoryName}</td>
+                          <td className="px-6 py-4">{item.views} 次</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>视频播放时间分析</CardTitle>

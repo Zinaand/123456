@@ -1,18 +1,18 @@
 'use client';
 
 import Link from "next/link"
-import { Clock, Play, Tag } from "lucide-react"
+import { Clock, Play, Tag, Eye } from "lucide-react"
 import { useEffect, useState } from "react"
 
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { videoApi } from "@/lib/api"
-import { ApiResponse, PaginatedResponse, Video } from "@/types"
+import { ApiResponse, Video } from "@/types"
 import { formatDuration } from "@/lib/utils"
 import { getCategoryNameById } from "@/lib/category-utils"
 
-// 这个组件负责展示首页热门课程
+// 按播放量展示首页热门课程
 export default function FeaturedVideos() {
   const [featuredVideos, setFeaturedVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,19 +20,13 @@ export default function FeaturedVideos() {
   useEffect(() => {
     const fetchFeaturedVideos = async () => {
       try {
-        // 获取状态为"推荐"的视频，限制4个
-        const response = await videoApi.getVideos({
-          page: 1,
-          size: 4,
-          status: "published"
-        });
-        
-        const apiResponse = response.data as ApiResponse<PaginatedResponse<Video>>;
-        if (apiResponse.code === 200 && apiResponse.data.records) {
-          setFeaturedVideos(apiResponse.data.records);
+        const response = await videoApi.getPopularVideos(4, "published");
+        const apiResponse = response.data as ApiResponse<Video[]>;
+        if (apiResponse.code === 200 && apiResponse.data) {
+          setFeaturedVideos(apiResponse.data);
         }
       } catch (error) {
-        console.error('获取推荐视频失败:', error);
+        console.error('获取热门课程失败:', error);
       } finally {
         setLoading(false);
       }
@@ -75,15 +69,12 @@ export default function FeaturedVideos() {
                 className="object-cover w-full h-full transition-transform group-hover:scale-105 duration-300"
                 src={(() => {
                   if (!video.thumbnailUrl) return "/placeholder.svg?height=180&width=320";
-                  // 已经是 /uploads/ 开头，直接使用
                   if (video.thumbnailUrl.startsWith('/uploads/')) {
                     return video.thumbnailUrl;
                   }
-                  // 外部URL
                   if (video.thumbnailUrl.startsWith('http://') || video.thumbnailUrl.startsWith('https://')) {
                     return video.thumbnailUrl;
                   }
-                  // 其他情况添加前缀
                   return `/uploads/thumbnails/${video.thumbnailUrl}`;
                 })()}
               />
@@ -109,9 +100,15 @@ export default function FeaturedVideos() {
               <p className="text-sm text-muted-foreground line-clamp-2">{video.description}</p>
             </CardContent>
             <CardFooter className="pt-2 flex justify-between items-center">
-              <div className="flex items-center text-xs text-muted-foreground">
-                <Clock className="mr-1 h-3 w-3" />
-                {formatDuration(video.duration)}
+              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <span className="flex items-center">
+                  <Clock className="mr-1 h-3 w-3" />
+                  {formatDuration(video.duration)}
+                </span>
+                <span className="flex items-center">
+                  <Eye className="mr-1 h-3 w-3" />
+                  {video.views ?? 0}
+                </span>
               </div>
               <Link href={`/courses/${video.id}`}>
                 <Button variant="ghost" size="sm">

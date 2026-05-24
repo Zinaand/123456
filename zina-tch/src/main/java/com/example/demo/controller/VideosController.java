@@ -1,15 +1,18 @@
 package com.example.demo.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.demo.common.ApiResponse;
 import com.example.demo.dto.VideoDTO;
 import com.example.demo.pojo.Users;
 import com.example.demo.pojo.Videos;
+import com.example.demo.pojo.WatchHistory;
 import com.example.demo.service.UserService;
 import com.example.demo.service.UsersService;
 import com.example.demo.service.VideoCategoriesService;
 import com.example.demo.service.VideosService;
+import com.example.demo.service.WatchHistoryService;
 import com.example.demo.util.VideoUtils;
 import com.example.demo.utils.JwtUtil;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +28,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -46,6 +50,7 @@ public class VideosController {
     private final VideoCategoriesService videoCategoriesService;
     private final UsersService usersService;
     private final UserService userService;
+    private final WatchHistoryService watchHistoryService;
     private final JwtUtil jwtUtil;
 
     // 后端视频文件存储路径
@@ -57,6 +62,23 @@ public class VideosController {
     private static final String THUMBNAIL_UPLOAD_DIR = FRONTEND_PUBLIC_DIR + "/thumbnails/";
     
     /**
+     * 获取热门视频（按播放量排序）
+     */
+    @GetMapping("/popular")
+    public ApiResponse<List<Videos>> getPopular(
+            @RequestParam(value = "limit", defaultValue = "4") int limit,
+            @RequestParam(value = "status", defaultValue = "published") String status) {
+
+        List<Videos> videos = videosService.getPopularVideos(limit, status);
+        for (Videos video : videos) {
+            convertVideoUrls(video);
+        }
+
+        log.info("获取热门视频成功，共返回 {} 条记录", videos.size());
+        return ApiResponse.success(videos);
+    }
+
+    /**
      * 获取视频列表（分页）
      */
     @GetMapping
@@ -66,7 +88,8 @@ public class VideosController {
             @RequestParam(value = "keyword", required = false) String keyword,
             @RequestParam(value = "categoryId", required = false) Integer categoryId,
             @RequestParam(value = "accessType", required = false) String accessType,
-            @RequestParam(value = "status", required = false) String status) {
+            @RequestParam(value = "status", required = false) String status,
+            @RequestParam(value = "sort", required = false) String sort) {
         
         QueryWrapper<Videos> queryWrapper = new QueryWrapper<>();
         
@@ -92,8 +115,16 @@ public class VideosController {
             queryWrapper.eq("status", status);
         }
         
-        // 默认按上传时间倒序排序
-        queryWrapper.orderByDesc("upload_date");
+        // 排序：支持 views,desc / views,asc，默认按上传时间倒序
+        if (sort != null && sort.toLowerCase().contains("views")) {
+            if (sort.toLowerCase().contains("asc")) {
+                queryWrapper.orderByAsc("views");
+            } else {
+                queryWrapper.orderByDesc("views");
+            }
+        } else {
+            queryWrapper.orderByDesc("upload_date");
+        }
         
         log.info("获取视频列表，查询条件：{}", queryWrapper.getTargetSql());
         
@@ -362,23 +393,82 @@ public class VideosController {
     }
     
     /**
-     * 获取视频观看信息
+     * 记录视频观看（累加播放量）
      */
-    @GetMapping("/{id}/stats")
-    public ApiResponse<Map<String, Object>> getStats(@PathVariable Integer id) {
-        // 验证视频是否存在
+    @PostMapping("/{id}/view")
+    public ApiResponse<Map<String, Object>> recordView(
+            @PathVariable Integer id,
+            @RequestBody(required = false) Map<String, Object> body,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+
         Videos video = videosService.getById(id);
         if (video == null) {
             return ApiResponse.badRequest("视频不存在");
         }
-        
-        // 这里可以根据实际需求获取更多统计数据
+
+        Integer userId = null;
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            if (jwtUtil.validateToken(token)) {
+                userId = jwtUtil.getUserIdFromToken(token);
+            }
+        }
+
+        Integer progress = 0;
+        if (body != null && body.get("progress") != null) {
+            progress = ((Number) body.get("progress")).intValue();
+        }
+
+        videosService.recordView(id, userId, progress);
+
+        Videos updatedVideo = videosService.getById(id);
+        Map<String, Object> result = new HashMap<>();
+        result.put("views", updatedVideo != null ? updatedVideo.getViews() : 0);
+        return ApiResponse.success(result);
+    }
+
+    /**
+     * 获取视频观看信息
+     */
+    @GetMapping("/{id}/stats")
+    public ApiResponse<Map<String, Object>> getStats(@PathVariable Integer id) {
+        Videos video = videosService.getById(id);
+        if (video == null) {
+            return ApiResponse.badRequest("视频不存在");
+        }
+
+        QueryWrapper<WatchHistory> historyQuery = new QueryWrapper<>();
+        historyQuery.eq("video_id", id);
+        List<WatchHistory> histories = watchHistoryService.list(historyQuery);
+
+        int totalRecords = histories.size();
+        long completedCount = histories.stream()
+                .filter(h -> Boolean.TRUE.equals(h.getCompleted()))
+                .count();
+        String completionRate = totalRecords > 0
+                ? Math.round(completedCount * 100.0 / totalRecords) + "%"
+                : "0%";
+
+        long avgSeconds = 0;
+        if (totalRecords > 0) {
+            avgSeconds = histories.stream()
+                    .mapToInt(h -> h.getProgress() != null ? h.getProgress() : 0)
+                    .sum() / totalRecords;
+        }
+        String averageWatchTime = formatSeconds(avgSeconds);
+
         Map<String, Object> stats = new HashMap<>();
-        stats.put("views", video.getViews());
-        stats.put("averageWatchTime", "15:32"); // 模拟数据
-        stats.put("completionRate", "76%"); // 模拟数据
-        
+        stats.put("views", video.getViews() != null ? video.getViews() : 0);
+        stats.put("averageWatchTime", averageWatchTime);
+        stats.put("completionRate", completionRate);
+
         return ApiResponse.success(stats);
+    }
+
+    private String formatSeconds(long totalSeconds) {
+        long minutes = totalSeconds / 60;
+        long seconds = totalSeconds % 60;
+        return String.format("%d:%02d", minutes, seconds);
     }
     
     /**

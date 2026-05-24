@@ -50,6 +50,7 @@ export const videoApi = {
     categoryId?: number;
     accessType?: string;
     status?: string;
+    sort?: string;
   }) => {
     const queryParams = new URLSearchParams();
     
@@ -59,11 +60,16 @@ export const videoApi = {
     if (params?.categoryId) queryParams.append('categoryId', params.categoryId.toString());
     if (params?.accessType) queryParams.append('accessType', params.accessType);
     if (params?.status) queryParams.append('status', params.status);
+    if (params?.sort) queryParams.append('sort', params.sort);
     
     const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
     console.log(`请求视频列表API: /api/videos${queryString}`);
     return api.get(`/api/videos${queryString}`);
   },
+  getPopularVideos: (limit = 4, status = 'published') =>
+    api.get(`/api/videos/popular?limit=${limit}&status=${status}`),
+  recordView: (id: number, progress?: number) =>
+    api.post(`/api/videos/${id}/view`, progress != null ? { progress } : {}),
   getVideoById: (id: number) => api.get(`/api/videos/${id}`),
   createVideo: (formData: FormData) => api.post('/api/videos', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }

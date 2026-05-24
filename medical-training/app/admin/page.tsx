@@ -129,7 +129,8 @@ export default function AdminDashboard() {
         params: {
           page: 1,
           size: 5,
-          sort: 'views,desc' // 按观看次数排序
+          status: "published",
+          sort: 'views,desc'
         }
       });
       
