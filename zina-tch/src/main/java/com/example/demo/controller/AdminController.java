@@ -2,13 +2,16 @@ package com.example.demo.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.example.demo.pojo.Users;
+import com.example.demo.pojo.Videos;
 import com.example.demo.security.RequiresRoles;
 import com.example.demo.service.UsersService;
+import com.example.demo.service.VideosService;
 import com.example.demo.utils.Result;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -23,6 +26,9 @@ public class AdminController {
     @Autowired
     private UsersService usersService;
 
+    @Autowired
+    private VideosService videosService;
+
     /**
      * 获取管理后台的统计数据
      * @return 统计数据
@@ -30,31 +36,54 @@ public class AdminController {
     @GetMapping("/dashboard")
     public Result<Map<String, Object>> getDashboardStats() {
         Map<String, Object> stats = new HashMap<>();
-        
+
         // 获取用户总数
         long userCount = usersService.count();
         stats.put("userCount", userCount);
-        
+
         // 获取管理员数量
         QueryWrapper<Users> adminQuery = new QueryWrapper<>();
         adminQuery.eq("role", "admin").or().eq("role", "super_admin");
         long adminCount = usersService.count(adminQuery);
         stats.put("adminCount", adminCount);
-        
+
         // 获取会员数量
         QueryWrapper<Users> memberQuery = new QueryWrapper<>();
         memberQuery.eq("role", "member");
         long memberCount = usersService.count(memberQuery);
         stats.put("memberCount", memberCount);
-        
+
         // 获取普通用户数量
         QueryWrapper<Users> userQuery = new QueryWrapper<>();
         userQuery.eq("role", "user");
         long normalUserCount = usersService.count(userQuery);
         stats.put("normalUserCount", normalUserCount);
-        
-        // 这里可以添加更多的统计数据，如视频数量、收入等
-        
+
+        // 获取视频总数（包括所有状态，用于管理后台显示）
+        // 如果需要只统计已发布视频，可以取消下面这行注释并注释下一行
+        long videoCount = videosService.count();
+        // QueryWrapper<Videos> videoQuery = new QueryWrapper<>();
+        // videoQuery.eq("status", "published");
+        // long videoCount = videosService.count(videoQuery);
+        stats.put("videoCount", videoCount);
+
+        // 获取视频总播放量（统计所有视频的播放量）
+        // List<Videos> videos = videosService.list(videoQuery);
+        List<Videos> videos = videosService.list();
+        long totalViews = videos.stream().mapToLong(v -> v.getViews() != null ? v.getViews() : 0).sum();
+        stats.put("totalViews", totalViews);
+
+        // 获取热门视频（按播放量排序，取前5个，包括所有状态）
+        List<Videos> popularVideos = videosService.getPopularVideos(5, null);
+        stats.put("popularVideos", popularVideos);
+
+        // 获取最近活跃的用户（按最后登录时间排序，取前10个）
+        QueryWrapper<Users> recentUsersQuery = new QueryWrapper<>();
+        recentUsersQuery.orderByDesc("last_login")
+                        .last("LIMIT 10");
+        List<Users> recentUsers = usersService.list(recentUsersQuery);
+        stats.put("recentUsers", recentUsers);
+
         return Result.success(stats, "获取管理后台统计数据成功");
     }
     

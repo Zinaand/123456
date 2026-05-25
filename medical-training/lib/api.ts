@@ -94,6 +94,12 @@ export const userApi = {
   register: (data: { username: string; password: string; email: string }) =>
     api.post('/api/auth/register', data),
   getProfile: () => api.get('/api/user/profile'),
+  updateProfile: (data: { name?: string; phone?: string; avatar?: string }) =>
+    api.put('/api/user/profile', data),
+  changePassword: (data: { oldPassword: string; newPassword: string }) =>
+    api.put('/api/user/password', data),
+  getWatchHistory: () => api.get('/api/user/watch-history'),
+  getPayments: () => api.get('/api/user/payments'),
 };
 
 // 会员相关API
@@ -268,6 +274,12 @@ export const statsApi = {
   // 获取特定视频的播放时间
   getVideoPlayTime: (videoId: number) => 
     api.get(`/api/stats/video/${videoId}/play-time`),
+};
+
+// 管理员相关 API
+export const adminApi = {
+  // 获取仪表盘统计数据
+  getDashboardStats: () => api.get('/api/admin/dashboard'),
 };
 
 export default api; 

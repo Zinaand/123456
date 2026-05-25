@@ -8,6 +8,8 @@ import com.example.demo.utils.JwtUtil;
 import com.example.demo.utils.PasswordUtil;
 import com.example.demo.utils.Result;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Date;
@@ -44,38 +46,49 @@ public class AuthController {
      * @return token信息
      */
     @PostMapping("/login")
-    public Result<Map<String, Object>> login(@RequestBody Map<String, String> loginDto) {
+    public ResponseEntity<Result<Map<String, Object>>> login(@RequestBody Map<String, String> loginDto) {
         String username = loginDto.get("username");
         String password = loginDto.get("password");
         
         // 参数校验
         if (username == null || password == null) {
-            return Result.validateFailed("用户名或密码不能为空");
+            return ResponseEntity.badRequest().body(Result.validateFailed("用户名或密码不能为空"));
         }
         
-        // 查询用户
+        // 查询用户（支持邮箱、手机号、用户名登录）
         QueryWrapper<Users> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("email", username).or().eq("phone", username);
+        queryWrapper.and(wrapper -> wrapper
+                .eq("email", username)
+                .or()
+                .eq("phone", username)
+                .or()
+                .eq("name", username));
         Users user = usersService.getOne(queryWrapper);
         
         // 用户不存在
         if (user == null) {
-            return Result.validateFailed("用户名或密码错误");
+            return ResponseEntity.badRequest().body(Result.validateFailed("用户名或密码错误"));
         }
         
         // 密码校验
         if (!passwordUtil.matches(password, user.getPassword())) {
-            return Result.validateFailed("用户名或密码错误");
+            return ResponseEntity.badRequest().body(Result.validateFailed("用户名或密码错误"));
         }
 
         // 检查用户状态 - 禁用用户不允许登录
         if (!"active".equals(user.getStatus())) {
             if ("inactive".equals(user.getStatus())) {
-                return Result.error("账号已被禁用，请联系管理员");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Result.error(403, "该用户被禁用"));
+            } else if ("locked".equals(user.getStatus())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Result.error(403, "该用户已被锁定"));
             } else if ("banned".equals(user.getStatus())) {
-                return Result.error("账号已被封禁，请联系管理员");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Result.error(403, "该用户已被封禁"));
             } else {
-                return Result.error("账号状态异常，请联系管理员");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Result.error(403, "该用户状态异常，请联系管理员"));
             }
         }
 
@@ -99,7 +112,7 @@ public class AuthController {
         result.put("membershipExpireDate", user.getMembershipExpireDate());
         result.put("isValidMember", isValidMember(user));
         
-        return Result.success(result, "登录成功");
+        return ResponseEntity.ok(Result.success(result, "登录成功"));
     }
     
     /**

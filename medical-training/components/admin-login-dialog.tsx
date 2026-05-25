@@ -50,9 +50,25 @@ export function AdminLoginDialog() {
       setLoading(true)
       const response = await userApi.login({ username, password })
 
-      // 使用类型断言确保响应数据符合预期类型
-      const responseData = response.data as ApiResponse<LoginResponse>
+      const responseData = response.data as ApiResponse<LoginResponse> & { success?: boolean }
+      if (responseData.success === false || (responseData.code && responseData.code !== 200)) {
+        toast({
+          title: "登录失败",
+          description: responseData.message || "用户名或密码错误",
+          variant: "destructive",
+        })
+        return
+      }
+
       const userData = responseData.data
+      if (!userData?.token) {
+        toast({
+          title: "登录失败",
+          description: responseData.message || "登录响应异常，请稍后重试",
+          variant: "destructive",
+        })
+        return
+      }
 
       // 检查用户角色
       if (userData.role !== "admin") {
@@ -89,9 +105,10 @@ export function AdminLoginDialog() {
       setOpen(false)
       router.push("/admin")
     } catch (error: any) {
+      const message = error.response?.data?.message
       toast({
-        title: "登录失败",
-        description: error.response?.data?.message || "用户名或密码错误",
+        title: message?.includes("禁用") ? "账号已禁用" : "登录失败",
+        description: message || "用户名或密码错误",
         variant: "destructive",
       })
     } finally {

@@ -57,7 +57,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     SecurityContextHolder.clearContext();
                     response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                     response.setContentType("application/json;charset=UTF-8");
-                    response.getWriter().write("{\"code\":403,\"message\":\"账号已被禁用，请联系管理员\"}");
+                    response.getWriter().write("{\"code\":403,\"message\":\"该用户被禁用\"}");
                     return;
                 }
 

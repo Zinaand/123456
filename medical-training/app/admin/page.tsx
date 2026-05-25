@@ -8,7 +8,7 @@ import Link from "next/link"
 import { PlusCircle, Search } from "lucide-react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import api from "@/lib/api"
+import api, { adminApi } from "@/lib/api"
 
 import { Button } from "@/components/ui/button"
 
@@ -63,6 +63,14 @@ export default function AdminDashboard() {
   const [popularVideos, setPopularVideos] = useState<Video[]>([]);
   const [videoLoading, setVideoLoading] = useState(true);
 
+  // 统计数据
+  const [stats, setStats] = useState({
+    memberCount: 0,
+    videoCount: 0,
+    totalViews: 0,
+    recentUsers: [] as User[]
+  });
+
   const fetchUsers = async (page = 1, keyword = "") => {
     try {
       setLoading(true);
@@ -116,14 +124,14 @@ export default function AdminDashboard() {
   const fetchPopularVideos = async () => {
     try {
       setVideoLoading(true);
-      
+
       // 从localStorage获取token
       const token = localStorage.getItem('token');
       if (!token) {
         router.push('/login');
         return;
       }
-      
+
       // 调用热门视频API - 修改为正确的API路径
       const response = await api.get("/api/videos", {
         params: {
@@ -133,23 +141,23 @@ export default function AdminDashboard() {
           sort: 'views,desc'
         }
       });
-      
+
       // 设置热门视频数据
       console.log("热门视频API响应:", response);
-      
+
       if (response.data && response.data.data) {
         const rawRecords = response.data.data.records || [];
         console.log("热门视频原始数据:", rawRecords);
-        
+
         // 处理视频数据
         const videosData = rawRecords.map((video: Video) => ({
           ...video,
           // 转换为前端需要的格式
           completionRate: "70%" // 假设完成率数据，实际应从后端获取
         }));
-        
+
         setPopularVideos(videosData);
-      } 
+      }
     } catch (error: any) {
       if (error.response?.status === 401) {
         // 未授权，跳转到登录页
@@ -158,6 +166,41 @@ export default function AdminDashboard() {
       console.error("获取热门视频失败", error);
     } finally {
       setVideoLoading(false);
+    }
+  };
+
+  // 获取仪表盘统计数据
+  const fetchDashboardStats = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        router.push('/login');
+        return;
+      }
+
+      const response = await adminApi.getDashboardStats();
+
+      if (response.data.success) {
+        const data = response.data.data;
+        setStats({
+          memberCount: data.memberCount || 0,
+          videoCount: data.videoCount || 0,
+          totalViews: data.totalViews || 0,
+          recentUsers: data.recentUsers || []
+        });
+        
+        // 如果有最近用户数据，更新用户列表
+        if (data.recentUsers && data.recentUsers.length > 0) {
+          setUsers(data.recentUsers.slice(0, pageSize));
+        }
+        
+        // 如果有热门视频数据，更新视频列表
+        if (data.popularVideos && data.popularVideos.length > 0) {
+          setPopularVideos(data.popularVideos);
+        }
+      }
+    } catch (error) {
+      console.error("获取统计数据失败", error);
     }
   };
 
@@ -182,37 +225,38 @@ export default function AdminDashboard() {
 
   // 组件挂载时获取数据
   useEffect(() => {
+    fetchDashboardStats();
     fetchUsers(1);
     fetchPopularVideos();
   }, []);
 
-  // 模拟数据
-  const stats = [
+  // 统计卡片数据（使用真实数据）
+  const statsCards = [
     {
       title: "总会员数",
-      value: "1,234",
-      change: "+12%",
+      value: stats.memberCount.toLocaleString(),
+      change: "",
       trend: "up",
       icon: <Users className="h-5 w-5 text-muted-foreground" />,
     },
     {
       title: "视频总数",
-      value: "256",
-      change: "+5%",
+      value: stats.videoCount.toLocaleString(),
+      change: "",
       trend: "up",
       icon: <FileVideo className="h-5 w-5 text-muted-foreground" />,
     },
     {
-      title: "总观看时长",
-      value: "3,567小时",
-      change: "+18%",
+      title: "总播放量",
+      value: stats.totalViews.toLocaleString(),
+      change: "",
       trend: "up",
       icon: <Clock className="h-5 w-5 text-muted-foreground" />,
     },
     {
-      title: "本月收入",
-      value: "¥45,678",
-      change: "+8%",
+      title: "总收入",
+      value: "¥0",
+      change: "",
       trend: "up",
       icon: <BarChart3 className="h-5 w-5 text-muted-foreground" />,
     },
@@ -231,7 +275,7 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat, index) => (
+        {statsCards.map((stat, index) => (
           <Card key={index}>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
@@ -239,15 +283,17 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stat.value}</div>
-              <p className="flex items-center text-xs text-muted-foreground">
-                {stat.trend === "up" ? (
-                  <TrendingUp className="mr-1 h-4 w-4 text-emerald-500" />
-                ) : (
-                  <TrendingUp className="mr-1 h-4 w-4 text-red-500" />
-                )}
-                <span className={stat.trend === "up" ? "text-emerald-500" : "text-red-500"}>{stat.change}</span>
-                <span className="ml-1">相比上月</span>
-              </p>
+              {stat.change && (
+                <p className="flex items-center text-xs text-muted-foreground">
+                  {stat.trend === "up" ? (
+                    <TrendingUp className="mr-1 h-4 w-4 text-emerald-500" />
+                  ) : (
+                    <TrendingUp className="mr-1 h-4 w-4 text-red-500" />
+                  )}
+                  <span className={stat.trend === "up" ? "text-emerald-500" : "text-red-500"}>{stat.change}</span>
+                  <span className="ml-1">相比上月</span>
+                </p>
+              )}
             </CardContent>
           </Card>
         ))}
